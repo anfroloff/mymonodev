@@ -1,0 +1,13 @@
+ Volume in drive D is d0b97a8e-9b
+ Volume Serial Number is 0216-0169
+
+ Directory of D:\dd\monodevelop\main\src\core\Mono.TextEditor.Platform\Internal\TextData
+
+07/06/2015  09:01 PM             2,123 ExtensionMethods.cs
+07/06/2015  09:01 PM               936 IObjectTracker.cs
+07/06/2015  09:01 PM             2,716 ITextBufferFactoryService2.cs
+07/06/2015  09:01 PM            27,590 LazyObservableCollection.cs
+07/06/2015  09:01 PM            25,979 TrackingSpanTree.cs
+07/06/2015  09:01 PM            32,068 UnicodeWordExtent.cs
+               6 File(s)         91,412 bytes
+               0 Dir(s)  99,954,487,296 bytes free

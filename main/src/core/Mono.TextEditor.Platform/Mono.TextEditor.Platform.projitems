@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>{AAC93D68-A274-4D6D-A6BA-02D883D5B525}</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Mono.TextEditor.Platform</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+      <Compile Include="$(MSBuildThisFileDirectory)Core\ContentType\ContentTypeImpl.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Core\ContentType\ContentTypeRegistryServiceImpl.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Core\ContentType\Strings.Designer.cs">
+          <DependentUpon>Strings.resx</DependentUpon>
+      </Compile>
+      <EmbeddedResource Include="$(MSBuildThisFileDirectory)Core\ContentType\Strings.resx">
+          <Generator>ResXFileCodeGenerator</Generator>
+          <LastGenOutput>Strings.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\ArgumentValidation.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\BufferTracker.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\DifferenceCollection.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\ExtensionSelector.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\FrugalList.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\GuardedOperations.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\IContentTypeMetadata.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\IEncodingDetectorMetadata.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\IOrderableContentTypeMetadata.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\ListUtilities.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\MappingHelper.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\MappingPointSnapshot.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\MappingSpanSnapshot.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\ProjectionSpanDiffer.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\ProjectionSpanDifference.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\SnapshotTracker.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\TextModelOptions.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\TextUtilities.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\WeakReferenceForKey.cs" />
+
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextData\ExtensionMethods.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextData\IObjectTracker.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextData\ITextBufferFactoryService2.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextData\LazyObservableCollection.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextData\TrackingSpanTree.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextData\UnicodeWordExtent.cs" />
+
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Storage\BaseTextStorageLoader.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Storage\CharStream.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Storage\CompressedTextStorage.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Storage\CompressedTextStorageLoader.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Storage\Compressor.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Storage\EncodedLineBreaks.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Storage\ITextStorage.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Storage\ITextStorageLoader.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Storage\Page.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Storage\PageManager.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Storage\SimpleTextStorage.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Storage\SimpleTextStorageLoader.cs" />
+
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\StringRebuilder\BaseStringRebuilder.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\StringRebuilder\BinaryStringRebuilder.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\StringRebuilder\IStringRebuilder.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\StringRebuilder\LineSpan.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\StringRebuilder\SimpleStringRebuilder.cs" />
+
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\BaseBuffer.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\BaseSnapshot.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\BufferFactoryService.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\BufferGroup.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\ChangeString.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\EncodedStreamReader.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\ExtendedCharacterDetectionDecoder.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\ExtendedCharacterDetector.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\FallbackDetector.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\ForwardFidelityCustomTrackingSpan.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\ForwardFidelityTrackingPoint.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\ForwardFidelityTrackingSpan.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\FxCopSuppressions.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\HighFidelityTrackingPoint.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\HighFidelityTrackingSpan.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\IInternalTextBufferFactory.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\ISubordinateTextEdit.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\LineBreakBoundaryConditions.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\MappingPoint.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\MappingSpan.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\NormalizedTextChangeCollection.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\PersistentSpan.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\PersistentSpanFactory.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\ReadOnlyRegion.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\ReadOnlySpan.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\ReadOnlySpanCollection.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Strings.Designer.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\TextBuffer.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\TextChange.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\TextDocument.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\TextDocumentFactoryService.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\TextModelUtilities.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\TextSnapshot.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\TextSnapshotLine.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\TextVersion.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\TrackingPoint.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\TrackingSpan.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\TrivialNormalizedTextChangeCollection.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\VersionNumberPosition.cs" />
+
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\BaseProjectionBuffer.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\BaseProjectionSnapshot.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\BufferGraph.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\BufferGraphFactoryService.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\ElisionBuffer.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\ElisionMap.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\ElisionMapNode.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\ElisionSnapshot.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\ProjectionBuffer.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\ProjectionSnapshot.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\ProjectionSnapshotDoppelganger.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\ProjectionSpanToChangeConverter.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\ProjectionUtilities.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\WeakEventHook.cs" />
+
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+</Project>
