@@ -39,11 +39,14 @@ using MonoDevelop.Ide.Editor;
 using MonoDevelop.Core;
 using System.IO;
 using MonoDevelop.Ide.Editor.Highlighting;
+using Microsoft.VisualStudio.Platform;
 
 namespace Mono.TextEditor
 {
-	class TextDocument : ITextDocument
+    class TextDocument : ITextDocument
 	{
+        internal readonly Microsoft.VisualStudio.Text.ITextBuffer textBuffer;
+
 		ImmutableText buffer;
 		readonly ILineSplitter splitter;
 
@@ -208,7 +211,9 @@ namespace Mono.TextEditor
 		
 		protected TextDocument (ImmutableText buffer,ILineSplitter splitter)
 		{
-			this.buffer = buffer;
+            //this.textBuffer = PlatformCatalog.Instance.TextBufferFactoryService.CreateTextBuffer(buffer.Text, PlatformCatalog.Instance.TextBufferFactoryService.InertContentType);
+
+            this.buffer = buffer;
 			this.splitter = splitter;
 			splitter.LineRemoved += HandleSplitterLineSegmentTreeLineRemoved;
 			foldSegmentTree.tree.NodeRemoved += HandleFoldSegmentTreetreeNodeRemoved; 
@@ -228,7 +233,7 @@ namespace Mono.TextEditor
 
 		public TextDocument (string text) : this()
 		{
-			Text = text;
+            Text = text;
 		}
 
 		public static TextDocument CreateImmutableDocument (string text, bool suppressHighlighting = true)
@@ -279,6 +284,9 @@ namespace Mono.TextEditor
 			set {
 				if (value == null)
 					value = "";
+
+                //this.textBuffer.Replace(new Microsoft.VisualStudio.Text.Span(0, this.textBuffer.CurrentSnapshot.Length), value);
+
 				var args = new TextChangeEventArgs (0, Text, value);
 				textSegmentMarkerTree.Clear ();
 				OnTextReplacing (args);
@@ -331,6 +339,9 @@ namespace Mono.TextEditor
 				throw new ArgumentOutOfRangeException (nameof (count), "must be > 0, was: " + count);
 			if (IsReadOnly)
 				return;
+
+            //this.textBuffer.Replace(new Microsoft.VisualStudio.Text.Span(offset, count), value);
+
 			InterruptFoldWorker ();
 
 			//int oldLineCount = LineCount;

@@ -11,6 +11,7 @@
   <ItemGroup>
       <Compile Include="$(MSBuildThisFileDirectory)Core\ContentType\ContentTypeImpl.cs" />
       <Compile Include="$(MSBuildThisFileDirectory)Core\ContentType\ContentTypeRegistryServiceImpl.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Core\ContentType\FileExtensionRegistryServiceImpl.cs" />
       <Compile Include="$(MSBuildThisFileDirectory)Core\ContentType\Strings.Designer.cs">
           <DependentUpon>Strings.resx</DependentUpon>
       </Compile>
@@ -19,6 +20,8 @@
           <LastGenOutput>Strings.Designer.cs</LastGenOutput>
       </EmbeddedResource>
 
+      <Compile Include="$(MSBuildThisFileDirectory)PlatformCatalog.cs" />
+      
       <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\ArgumentValidation.cs" />
       <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\BufferTracker.cs" />
       <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\DifferenceCollection.cs" />
@@ -119,6 +122,22 @@
       <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\ProjectionSpanToChangeConverter.cs" />
       <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\ProjectionUtilities.cs" />
       <Compile Include="$(MSBuildThisFileDirectory)Text\TextModel\Projection\WeakEventHook.cs" />
+
+      <Compile Include="$(MSBuildThisFileDirectory)Text\DifferenceAlgorithm\CharacterDecompositionList.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\DifferenceAlgorithm\DecompositionListMaker.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\DifferenceAlgorithm\DefaultTextDifferencingService.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\DifferenceAlgorithm\DiffChangeCollectionHelper.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\DifferenceAlgorithm\FinessedDifferenceCollection.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\DifferenceAlgorithm\HierarchicalDifferenceCollection.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\DifferenceAlgorithm\LineDecompositionList.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\DifferenceAlgorithm\MaximalSubsequenceAlgorithm.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\DifferenceAlgorithm\SnapshotLineList.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\DifferenceAlgorithm\TextDifferencingSelectorService.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\DifferenceAlgorithm\TokenizedStringList.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\DifferenceAlgorithm\WordDecompositionList.cs" />
+
+      <Compile Include="$(MSBuildThisFileDirectory)Text\DifferenceAlgorithm\TFS\DiffFinder.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Text\DifferenceAlgorithm\TFS\LCSDiff.cs" />
 
   </ItemGroup>
   <ItemGroup>
