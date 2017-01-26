@@ -41,6 +41,7 @@ using MonoDevelop.Core;
 using System.IO;
 using MonoDevelop.Ide.Editor.Highlighting;
 using Microsoft.VisualStudio.Platform;
+using Microsoft.VisualStudio.Text.Tagging;
 
 namespace Mono.TextEditor
 {
@@ -58,18 +59,18 @@ namespace Mono.TextEditor
 
 		//HACK TextSourceVersionProvider versionProvider = new TextSourceVersionProvider ();
 
-		string mimeType;
-
 		bool   readOnly;
 		ReadOnlyCheckDelegate readOnlyCheckDelegate;
 
 		public string MimeType {
 			get {
-				return mimeType;
+				return PlatformCatalog.Instance.MimeToContentTypeRegistryService.GetMimeType(this.textBuffer.CurrentSnapshot.ContentType);
 			}
 			set {
-				if (mimeType != value) {
-					mimeType = value;
+				var newContentType = (value == null) ? null : (PlatformCatalog.Instance.MimeToContentTypeRegistryService.GetContentType(value) ?? PlatformCatalog.Instance.ContentTypeRegistryService.UnknownContentType);
+				
+				if (this.textBuffer.CurrentSnapshot.ContentType != newContentType) {
+					this.textBuffer.ChangeContentType(newContentType, null);
 					UpdateSyntaxMode ();
 					OnMimeTypeChanged (EventArgs.Empty);
 				}
@@ -166,7 +167,7 @@ namespace Mono.TextEditor
 
 		void InitializeSyntaxMode ()
 		{
-			var def = SyntaxHighlightingService.GetSyntaxHighlightingDefinition (FileName, mimeType);
+			var def = SyntaxHighlightingService.GetSyntaxHighlightingDefinition (FileName, this.MimeType);
 			if (def != null) {
 				SyntaxMode = new SyntaxHighlighting (def, this);
 			} else {
@@ -182,11 +183,11 @@ namespace Mono.TextEditor
 			}
 
 			//already up to date
-			if (syntaxModeFileName == fileName && syntaxModeMimeType == mimeType) {
+			if (syntaxModeFileName == fileName && syntaxModeMimeType == this.MimeType) {
 				return;
 			}
 			syntaxModeFileName = fileName;
-			syntaxModeMimeType = mimeType;
+			syntaxModeMimeType = MimeType;
 
 			InitializeSyntaxMode ();
 		}
@@ -207,12 +208,11 @@ namespace Mono.TextEditor
 			}
 		}
 
-		protected TextDocument (bool useBOM, Encoding encoding, string fileName, string mimeType, Microsoft.VisualStudio.Text.ITextBuffer textBuffer)
+		protected TextDocument (bool useBOM, Encoding encoding, string fileName, Microsoft.VisualStudio.Text.ITextBuffer textBuffer)
 		{
 			this.useBOM = useBOM;
 			this.encoding = encoding;
 			this.fileName = fileName;
-			this.mimeType = mimeType;
 
 			this.textBuffer = textBuffer;
 
@@ -255,8 +255,9 @@ namespace Mono.TextEditor
 		{
 		}
 
-		public TextDocument (string text) : this(useBOM: false, encoding: Encoding.Default, fileName: null, mimeType: null,
-												 textBuffer: PlatformCatalog.Instance.TextBufferFactoryService.CreateTextBuffer(text ?? string.Empty, PlatformCatalog.Instance.TextBufferFactoryService.InertContentType))
+		public TextDocument (string text) : this(useBOM: false, encoding: Encoding.Default, fileName: null,
+												 textBuffer: PlatformCatalog.Instance.TextBufferFactoryService.CreateTextBuffer(text ?? string.Empty,
+																																PlatformCatalog.Instance.TextBufferFactoryService.InertContentType))
 		{
 		}
 
@@ -1985,7 +1986,7 @@ namespace Mono.TextEditor
 			}
 
 
-			public SnapshotDocument (TextDocument doc) : base (doc.useBOM, doc.encoding, doc.fileName, doc.mimeType,
+			public SnapshotDocument (TextDocument doc) : base (doc.useBOM, doc.encoding, doc.fileName,
 															   CreateBufferFromTextDocument(doc))
 			{
 				this.version = doc.Version;
@@ -1998,7 +1999,7 @@ namespace Mono.TextEditor
 			{
 				var snapshot = doc.textBuffer.CurrentSnapshot;
 				return PlatformCatalog.Instance.TextBufferFactoryService.CreateTextBuffer(new Microsoft.VisualStudio.Text.SnapshotSpan(snapshot, 0, snapshot.Length),
-																						  PlatformCatalog.Instance.TextBufferFactoryService.InertContentType);
+																						  snapshot.ContentType);
 			}
 		}
 

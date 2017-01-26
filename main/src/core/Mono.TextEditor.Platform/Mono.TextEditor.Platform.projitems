@@ -42,12 +42,27 @@
       <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\TextUtilities.cs" />
       <Compile Include="$(MSBuildThisFileDirectory)Utility\TextDataUtil\WeakReferenceForKey.cs" />
 
+      <Compile Include="$(MSBuildThisFileDirectory)Utility\TextLogicUtil\ITaggerMetadata.cs" />
+
       <Compile Include="$(MSBuildThisFileDirectory)Internal\TextData\ExtensionMethods.cs" />
       <Compile Include="$(MSBuildThisFileDirectory)Internal\TextData\IObjectTracker.cs" />
       <Compile Include="$(MSBuildThisFileDirectory)Internal\TextData\ITextBufferFactoryService2.cs" />
       <Compile Include="$(MSBuildThisFileDirectory)Internal\TextData\LazyObservableCollection.cs" />
       <Compile Include="$(MSBuildThisFileDirectory)Internal\TextData\TrackingSpanTree.cs" />
       <Compile Include="$(MSBuildThisFileDirectory)Internal\TextData\UnicodeWordExtent.cs" />
+
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextLogic\IAccurateClassifier.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextLogic\IAccurateTagAggregator.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextLogic\IAccurateTagger.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextLogic\IElisionTag.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextLogic\ILoggingServiceInternal.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextLogic\IPerformanceMarkerBlockProvider.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextLogic\ITextModelOptionsSetter.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextLogic\ITextSearchNavigator2.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextLogic\ITextSearchResultTag.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextLogic\ITextSearchTagger.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextLogic\ITextSearchTaggerFactoryService.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Internal\TextLogic\TagAggregatorOptions2.cs" />
 
       <Compile Include="$(MSBuildThisFileDirectory)Data\TextModel\Storage\BaseTextStorageLoader.cs" />
       <Compile Include="$(MSBuildThisFileDirectory)Data\TextModel\Storage\CharStream.cs" />
@@ -139,6 +154,22 @@
       <Compile Include="$(MSBuildThisFileDirectory)Data\DifferenceAlgorithm\TFS\DiffFinder.cs" />
       <Compile Include="$(MSBuildThisFileDirectory)Data\DifferenceAlgorithm\TFS\LCSDiff.cs" />
 
+      <Compile Include="$(MSBuildThisFileDirectory)Logic\TagAggregator\TagAggregator.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Logic\TagAggregator\TagAggregatorFactoryService.cs" />
+
+      <Compile Include="$(MSBuildThisFileDirectory)Logic\ClassificationAggregator\ClassifierAggregator.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Logic\ClassificationAggregator\ClassifierAggregatorService.cs" />
+
+      <Compile Include="$(MSBuildThisFileDirectory)Logic\ClassificationType\Strings.Designer.cs">
+          <DependentUpon>Strings.resx</DependentUpon>
+      </Compile>
+      <EmbeddedResource Include="$(MSBuildThisFileDirectory)Logic\ClassificationType\Strings.resx">
+          <Generator>ResXFileCodeGenerator</Generator>
+          <LastGenOutput>Strings.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+
+      <Compile Include="$(MSBuildThisFileDirectory)Logic\ClassificationType\ClassificationTypeImpl.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)Logic\ClassificationType\ClassificationTypeRegistryService.cs" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

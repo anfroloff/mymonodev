@@ -28,18 +28,26 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.ComponentModel.Composition;
 using System.ComponentModel.Composition.Hosting;
 using System.Reflection;
 using System.Diagnostics;
 using System.ComponentModel;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
+using MonoDevelop.Core;
+
+using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Tagging;
+using Microsoft.VisualStudio.Utilities;
 
 namespace Microsoft.VisualStudio.Platform
 {
-    public class PlatformCatalog
+	public class PlatformCatalog
     {
         public static PlatformCatalog Instance = new PlatformCatalog();
 
@@ -54,9 +62,12 @@ namespace Microsoft.VisualStudio.Platform
 
             this.CompositionContainer = container;
             this.TextBufferFactoryService = (ITextBufferFactoryService2)_textBufferFactoryService;
-        }
 
-        private static CompositionContainer CreateContainer()
+			this.MimeToContentTypeRegistryService.LinkTypes("text/plain", this.ContentTypeRegistryService.GetContentType("text"));		  //HACK
+			this.MimeToContentTypeRegistryService.LinkTypes("text/x-csharp", this.ContentTypeRegistryService.GetContentType("csharp"));   //HACK
+		}
+
+		private static CompositionContainer CreateContainer()
         {
             // TODO: Read these from manifest.addin.xml?
             AggregateCatalog catalog = new AggregateCatalog();
@@ -80,7 +91,162 @@ namespace Microsoft.VisualStudio.Platform
             return container;
         }
 
-        [Import]
-        internal ITextBufferFactoryService _textBufferFactoryService { get; set; }
-    }
+		[Export]                                        //HACK
+		[Name("csharp")]                                //HACK
+		[BaseDefinition("code")]                        //HACK
+		public ContentTypeDefinition codeContentType;   //HACK
+
+		[Import]
+		internal ITextBufferFactoryService _textBufferFactoryService { get; private set; }
+
+		[Import]
+		internal IMimeToContentTypeRegistryService MimeToContentTypeRegistryService { get; private set; }
+
+		[Import]
+		internal IContentTypeRegistryService ContentTypeRegistryService { get; private set; }
+
+		[Import]
+		internal IBufferTagAggregatorFactoryService BufferTagAggregatorFactoryService { get; private set; }
+	}
+
+	public interface IThreadHelper
+	{
+		Task RunInMainThread(Action a);
+		Task<T> RunInMainThread<T>(Func<T> f);
+	}
+
+	[Export]
+	public class PlatformThreadHelper : IThreadHelper
+	{
+		public Task RunInMainThread(Action a)
+		{
+			return MonoDevelop.Core.Runtime.RunInMainThread(a);
+		}
+
+		public Task<T> RunInMainThread<T>(Func<T> f)
+		{
+			return MonoDevelop.Core.Runtime.RunInMainThread(f);
+		}
+	}
+
+	public interface IMimeToContentTypeRegistryService
+	{
+		string GetMimeType(IContentType type);
+		IContentType GetContentType(string type);
+
+		void LinkTypes(string mimeType, IContentType contentType);
+	}
+
+	[Export(typeof(IMimeToContentTypeRegistryService))]
+	public class MimeToContentTypeRegistryService : IMimeToContentTypeRegistryService
+	{
+		public string GetMimeType(IContentType type)
+		{
+			string mimeType;
+			if (this.maps.Item2.TryGetValue(type, out mimeType))
+			{
+				return mimeType;
+			}
+
+			return null;
+		}
+
+		public IContentType GetContentType(string type)
+		{
+			IContentType contentType;
+			if (this.maps.Item1.TryGetValue(type, out contentType))
+			{
+				return contentType;
+			}
+
+			return null;
+		}
+
+		public void LinkTypes(string mimeType, IContentType contentType)
+		{
+			var oldMap = Volatile.Read(ref this.maps);
+			while (true)
+			{
+				if (oldMap.Item1.ContainsKey(mimeType) || oldMap.Item2.ContainsKey(contentType))
+					break;
+
+				var newMap = Tuple.Create(oldMap.Item1.Add(mimeType, contentType), oldMap.Item2.Add(contentType, mimeType));
+				var result = Interlocked.CompareExchange(ref this.maps, newMap, oldMap);
+				if (result == oldMap)
+				{
+					break;
+				}
+
+				oldMap = result;
+			}
+
+		}
+
+		private Tuple<ImmutableDictionary<string, IContentType>, ImmutableDictionary<IContentType, string>> maps = Tuple.Create(ImmutableDictionary<string, IContentType>.Empty, ImmutableDictionary<IContentType, string>.Empty);
+	}
+
+	/*
+	[Export(typeof(ITaggerProvider))]
+	[ContentType("text")]
+	[TagType(typeof(IClassificationTag))]
+	public class TestClassifierProvider : ITaggerProvider
+	{
+		[Import]
+		internal IClassificationTypeRegistryService ClassificationTypeRegistryService { get; private set; }
+
+		[Export]
+		[Name("keyword")]
+		public ClassificationTypeDefinition textClassificationType;
+
+		public ITagger<T> CreateTagger<T>(ITextBuffer buffer) where T : ITag
+		{
+			return buffer.Properties.GetOrCreateSingletonProperty(typeof(TestClassifier), () => new TestClassifier(this)) as ITagger<T>;
+		}
+	}
+
+	public class TestClassifier : ITagger<IClassificationTag>
+	{
+		private ClassificationTag _keyword { get; }
+
+		public TestClassifier(TestClassifierProvider provider)
+		{
+			_keyword = new ClassificationTag(provider.ClassificationTypeRegistryService.GetClassificationType("keyword"));
+		}
+
+		public IEnumerable<ITagSpan<IClassificationTag>> GetTags(NormalizedSnapshotSpanCollection spans)
+		{
+			foreach (var span in spans)
+			{
+				int start = -1;
+				for (int i = span.Start; (i < span.End); ++i)
+				{
+					var c = span.Snapshot[i];
+					if ((c == 'a') || (c == 'A'))
+					{
+						if (start == -1)
+						{
+							start = i;
+						}
+					}
+					else if (start != -1)
+					{
+						yield return new TagSpan<ClassificationTag>(
+								new SnapshotSpan(span.Snapshot, start, i - start),
+								_keyword);
+						start = -1;
+					}
+				}
+
+				if (start != -1)
+				{
+					yield return new TagSpan<ClassificationTag>(
+							new SnapshotSpan(span.Snapshot, start, span.End - start),
+							_keyword);
+				}
+			}
+		}
+
+		public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
+	}
+	*/
 }
