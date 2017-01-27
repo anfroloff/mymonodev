@@ -47,7 +47,7 @@ namespace Mono.TextEditor
 {
 	class TextDocument : ITextDocument
 	{
-		readonly Microsoft.VisualStudio.Text.ITextBuffer textBuffer;
+		public Microsoft.VisualStudio.Text.ITextBuffer TextBuffer { get; }
 		bool lineEndingMismatch;
 		bool useBOM;
 		Encoding encoding;
@@ -64,13 +64,16 @@ namespace Mono.TextEditor
 
 		public string MimeType {
 			get {
-				return PlatformCatalog.Instance.MimeToContentTypeRegistryService.GetMimeType(this.textBuffer.CurrentSnapshot.ContentType);
+				return PlatformCatalog.Instance.MimeToContentTypeRegistryService.GetMimeType(this.TextBuffer.CurrentSnapshot.ContentType);
 			}
 			set {
-				var newContentType = (value == null) ? null : (PlatformCatalog.Instance.MimeToContentTypeRegistryService.GetContentType(value) ?? PlatformCatalog.Instance.ContentTypeRegistryService.UnknownContentType);
+				var newContentType = PlatformCatalog.Instance.ContentTypeRegistryService.UnknownContentType;
+				if (value != null)
+				{
+					newContentType = PlatformCatalog.Instance.MimeToContentTypeRegistryService.GetContentType (value) ?? newContentType;				}
 				
-				if (this.textBuffer.CurrentSnapshot.ContentType != newContentType) {
-					this.textBuffer.ChangeContentType(newContentType, null);
+				if (this.TextBuffer.CurrentSnapshot.ContentType != newContentType) {
+					this.TextBuffer.ChangeContentType(newContentType, null);
 					UpdateSyntaxMode ();
 					OnMimeTypeChanged (EventArgs.Empty);
 				}
@@ -171,7 +174,7 @@ namespace Mono.TextEditor
 			if (def != null) {
 				SyntaxMode = new SyntaxHighlighting (def, this);
 			} else {
-				SyntaxMode = DefaultSyntaxHighlighting.Instance;
+				SyntaxMode = DefaultSyntaxHighlighting.Instance; //HACK PlatformCatalog.Instance.CreateSyntaxHighlighting(this);
 			}
 		}
 
@@ -214,11 +217,11 @@ namespace Mono.TextEditor
 			this.encoding = encoding;
 			this.fileName = fileName;
 
-			this.textBuffer = textBuffer;
+			this.TextBuffer = textBuffer;
 
-			this.textBuffer.Properties.AddProperty (typeof (ITextDocument), this);
+			this.TextBuffer.Properties.AddProperty (typeof (ITextDocument), this);
 
-			this.textBuffer.Changed += this.OnTextBufferChanged;
+			this.TextBuffer.Changed += this.OnTextBufferChanged;
 
 			TextChanging += HandleSplitterLineSegmentTreeLineRemoved;
 			foldSegmentTree.tree.NodeRemoved += HandleFoldSegmentTreetreeNodeRemoved;
@@ -274,7 +277,7 @@ namespace Mono.TextEditor
 
 		public int Length {
 			get {
-				return this.textBuffer.CurrentSnapshot.Length;
+				return this.TextBuffer.CurrentSnapshot.Length;
 			}
 		}
 
@@ -286,7 +289,7 @@ namespace Mono.TextEditor
 			get {
 				string completeText = cachedText != null ? (cachedText.Target as string) : null;
 				if (completeText == null) {
-					completeText = this.textBuffer.CurrentSnapshot.GetText ();
+					completeText = this.TextBuffer.CurrentSnapshot.GetText ();
 					cachedText = new WeakReference(completeText);
 				}
 				return completeText;
@@ -298,7 +301,7 @@ namespace Mono.TextEditor
 				textSegmentMarkerTree.Clear();
 				OnTextReplacing(args);
 				cachedText = null;
-				this.textBuffer.Replace(new Microsoft.VisualStudio.Text.Span(0, this.textBuffer.CurrentSnapshot.Length), value);
+				this.TextBuffer.Replace(new Microsoft.VisualStudio.Text.Span(0, this.TextBuffer.CurrentSnapshot.Length), value);
 
 				extendingTextMarkers = new List<TextLineMarker>();
 				//HACK splitter.Initalize(value, out longestLineAtTextSet);
@@ -376,7 +379,7 @@ namespace Mono.TextEditor
 			//HACK what does this line to? value = args.InsertedText.Text;
 
 			cachedText = null;
-			this.textBuffer.Replace(new Microsoft.VisualStudio.Text.Span(offset, count), value);
+			this.TextBuffer.Replace(new Microsoft.VisualStudio.Text.Span(offset, count), value);
 
 			//HACK buffer = buffer.RemoveText(offset, count);
 			//HACK if (!string.IsNullOrEmpty (value))
@@ -401,7 +404,7 @@ namespace Mono.TextEditor
 			if (endOffset > Length)
 				throw new ArgumentException ("endOffset > Length");
 
-			return this.textBuffer.CurrentSnapshot.GetText(startOffset, endOffset - startOffset);
+			return this.TextBuffer.CurrentSnapshot.GetText(startOffset, endOffset - startOffset);
 		}
 
 		public string GetTextBetween (DocumentLocation start, DocumentLocation end)
@@ -416,7 +419,7 @@ namespace Mono.TextEditor
 		
 		public string GetTextAt (int offset, int count)
 		{
-			return this.textBuffer.CurrentSnapshot.GetText(offset, count);
+			return this.TextBuffer.CurrentSnapshot.GetText(offset, count);
 		}
 		
 		public string GetTextAt (DocumentRegion region)
@@ -452,17 +455,17 @@ namespace Mono.TextEditor
 		
 		public char GetCharAt (int offset)
 		{
-			return this.textBuffer.CurrentSnapshot[offset];
+			return this.TextBuffer.CurrentSnapshot[offset];
 		}
 
 		public char GetCharAt (DocumentLocation location)
 		{
-			return this.textBuffer.CurrentSnapshot[LocationToOffset (location)];
+			return this.TextBuffer.CurrentSnapshot[LocationToOffset (location)];
 		}
 
 		public char GetCharAt (int line, int column)
 		{
-			return this.textBuffer.CurrentSnapshot[LocationToOffset (line, column)];
+			return this.TextBuffer.CurrentSnapshot[LocationToOffset (line, column)];
 		}
 
 		/// <summary>
@@ -474,7 +477,7 @@ namespace Mono.TextEditor
 		/// <returns>The first index where the character was found; or -1 if no occurrence was found.</returns>
 		public int IndexOf (char c, int startIndex, int count)
 		{
-			var snapshot = this.textBuffer.CurrentSnapshot;
+			var snapshot = this.TextBuffer.CurrentSnapshot;
 
 			for (int i = 0; (i < count); ++i)
 			{
@@ -499,7 +502,7 @@ namespace Mono.TextEditor
 		{
 			//TODO do we really need to handle general StringComparison or should we hard code this only for Ordinal
 			// (where we use IndexOf(c, ...) to find possible matches first.
-			var snapshot = this.textBuffer.CurrentSnapshot;
+			var snapshot = this.TextBuffer.CurrentSnapshot;
 			if ((startIndex < 0) || (count < 0) || (startIndex + count > snapshot.Length))
 			{
 				throw new ArgumentOutOfRangeException(nameof(startIndex));
@@ -616,13 +619,13 @@ namespace Mono.TextEditor
 
 		public int LineCount {
 			get {
-				return this.textBuffer.CurrentSnapshot.LineCount;
+				return this.TextBuffer.CurrentSnapshot.LineCount;
 			}
 		}
 
 		public IEnumerable<DocumentLine> GetLinesBetween (int startLine, int endLine)
 		{
-			var snapshot = this.textBuffer.CurrentSnapshot;
+			var snapshot = this.TextBuffer.CurrentSnapshot;
 
 			endLine = Math.Min(endLine, snapshot.LineCount);
 			for (int i = startLine; (i <= endLine); ++i)
@@ -696,7 +699,7 @@ namespace Mono.TextEditor
 
 		public DocumentLine GetLineByOffset (int offset)
 		{
-			return new DocumentLineFromTextSnapshotLine(this.textBuffer.CurrentSnapshot.GetLineFromPosition(offset));
+			return new DocumentLineFromTextSnapshotLine(this.TextBuffer.CurrentSnapshot.GetLineFromPosition(offset));
 		}
 
 		IDocumentLine IReadonlyTextDocument.GetLineByOffset (int offset)
@@ -706,7 +709,7 @@ namespace Mono.TextEditor
 
 		public int OffsetToLineNumber (int offset)
 		{
-			return this.textBuffer.CurrentSnapshot.GetLineFromPosition(offset).LineNumber + 1;
+			return this.TextBuffer.CurrentSnapshot.GetLineFromPosition(offset).LineNumber + 1;
 		}
 		#endregion
 
@@ -1950,19 +1953,19 @@ namespace Mono.TextEditor
 
 		public System.IO.TextReader CreateReader ()
 		{
-			var snapshot = this.textBuffer.CurrentSnapshot;
+			var snapshot = this.TextBuffer.CurrentSnapshot;
 			return new SnapshotSpanToTextReader(new Microsoft.VisualStudio.Text.SnapshotSpan(snapshot, 0, snapshot.Length));
 		}
 
 		public System.IO.TextReader CreateReader (int offset, int length)
 		{
-			var snapshot = this.textBuffer.CurrentSnapshot;
+			var snapshot = this.TextBuffer.CurrentSnapshot;
 			return new SnapshotSpanToTextReader(new Microsoft.VisualStudio.Text.SnapshotSpan(snapshot, offset, length));
 		}
 
 		public virtual ITextSourceVersion Version {
 			get {
-				return new TextVersionToTextSourceVersion(this.textBuffer.CurrentSnapshot.Version);
+				return new TextVersionToTextSourceVersion(this.TextBuffer.CurrentSnapshot.Version);
 			}
 		}
 
@@ -1997,7 +2000,7 @@ namespace Mono.TextEditor
 
 			private static Microsoft.VisualStudio.Text.ITextBuffer CreateBufferFromTextDocument(TextDocument doc)
 			{
-				var snapshot = doc.textBuffer.CurrentSnapshot;
+				var snapshot = doc.TextBuffer.CurrentSnapshot;
 				return PlatformCatalog.Instance.TextBufferFactoryService.CreateTextBuffer(new Microsoft.VisualStudio.Text.SnapshotSpan(snapshot, 0, snapshot.Length),
 																						  snapshot.ContentType);
 			}
@@ -2010,7 +2013,7 @@ namespace Mono.TextEditor
 
 		public void CopyTo (int sourceIndex, char [] destination, int destinationIndex, int count)
 		{
-			var snapshot = this.textBuffer.CurrentSnapshot;
+			var snapshot = this.TextBuffer.CurrentSnapshot;
 			for (int i = 0; (i < count); ++i)
 			{
 				destination[destinationIndex + i] = snapshot[sourceIndex + i];
@@ -2020,13 +2023,13 @@ namespace Mono.TextEditor
 
 		ITextSource ITextSource.CreateSnapshot ()
 		{
-			var snapshot = this.textBuffer.CurrentSnapshot;
+			var snapshot = this.TextBuffer.CurrentSnapshot;
 			return new SnapshotSpanToTextSource(this.UseBOM, this.Encoding, new Microsoft.VisualStudio.Text.SnapshotSpan(snapshot, 0, snapshot.Length));
 		}
 
 		ITextSource ITextSource.CreateSnapshot (int offset, int length)
 		{
-			var snapshot = this.textBuffer.CurrentSnapshot;
+			var snapshot = this.TextBuffer.CurrentSnapshot;
 			return new SnapshotSpanToTextSource(this.UseBOM, this.Encoding, new Microsoft.VisualStudio.Text.SnapshotSpan(snapshot, offset, length));
 		}
 
@@ -2060,16 +2063,16 @@ namespace Mono.TextEditor
 
 		private DocumentLine Get(int number)
 		{
-			return new DocumentLineFromTextSnapshotLine(this.textBuffer.CurrentSnapshot.GetLineFromLineNumber(number - 1));
+			return new DocumentLineFromTextSnapshotLine(this.TextBuffer.CurrentSnapshot.GetLineFromLineNumber(number - 1));
 		}
 
-		sealed class DocumentLineFromTextSnapshotLine : DocumentLine
+		internal sealed class DocumentLineFromTextSnapshotLine : DocumentLine
 		{
-			readonly Microsoft.VisualStudio.Text.ITextSnapshotLine line;
+			public Microsoft.VisualStudio.Text.ITextSnapshotLine Line { get; }
 
 			public override int Offset
 			{
-				get { return this.line.Start; }
+				get { return this.Line.Start; }
 				set
 				{
 
@@ -2080,7 +2083,7 @@ namespace Mono.TextEditor
 			{
 				get
 				{
-					return this.line.LineNumber + 1;
+					return this.Line.LineNumber + 1;
 				}
 			}
 
@@ -2088,8 +2091,8 @@ namespace Mono.TextEditor
 			{
 				get
 				{
-					int newLineNumber = this.line.LineNumber + 1;
-					return (newLineNumber < this.line.Snapshot.LineCount) ? new DocumentLineFromTextSnapshotLine(this.line.Snapshot.GetLineFromLineNumber(newLineNumber)) : null;
+					int newLineNumber = this.Line.LineNumber + 1;
+					return (newLineNumber < this.Line.Snapshot.LineCount) ? new DocumentLineFromTextSnapshotLine(this.Line.Snapshot.GetLineFromLineNumber(newLineNumber)) : null;
 				}
 			}
 
@@ -2097,19 +2100,19 @@ namespace Mono.TextEditor
 			{
 				get
 				{
-					int newLineNumber = this.line.LineNumber - 1;
-					return (newLineNumber >= 0) ? new DocumentLineFromTextSnapshotLine(this.line.Snapshot.GetLineFromLineNumber(newLineNumber)) : null;
+					int newLineNumber = this.Line.LineNumber - 1;
+					return (newLineNumber >= 0) ? new DocumentLineFromTextSnapshotLine(this.Line.Snapshot.GetLineFromLineNumber(newLineNumber)) : null;
 				}
 			}
 
 			public DocumentLineFromTextSnapshotLine(Microsoft.VisualStudio.Text.ITextSnapshotLine line) : base(line.LengthIncludingLineBreak, DocumentLineFromTextSnapshotLine.LineCode(line))
 			{
-				this.line = line;
+				this.Line = line;
 			}
 
 			public override string ToString()
 			{
-				return string.Format("[LineSegment: lineNumber={0}, Offset={1}]", this.line.LineNumber, this.line.Start.Position);
+				return string.Format("[LineSegment: lineNumber={0}, Offset={1}]", this.Line.LineNumber, this.Line.Start.Position);
 			}
 
 			private static UnicodeNewline LineCode(Microsoft.VisualStudio.Text.ITextSnapshotLine line)
@@ -2141,13 +2144,13 @@ namespace Mono.TextEditor
 
 			public override int GetHashCode()
 			{
-				return this.line.Snapshot.GetHashCode() ^ this.line.LineNumber;
+				return this.Line.Snapshot.GetHashCode() ^ this.Line.LineNumber;
 			}
 
 			public override bool Equals(object other)
 			{
 				var otherLine = other as DocumentLineFromTextSnapshotLine;
-				return (otherLine != null) && (otherLine.line.Snapshot == this.line.Snapshot) && (otherLine.line.LineNumber == this.line.LineNumber);
+				return (otherLine != null) && (otherLine.Line.Snapshot == this.Line.Snapshot) && (otherLine.Line.LineNumber == this.Line.LineNumber);
 			}
 		}
 

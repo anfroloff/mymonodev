@@ -39,6 +39,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using MonoDevelop.Core;
+using MonoDevelop.Ide.Editor.Highlighting;
 
 using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Text;
@@ -91,6 +92,11 @@ namespace Microsoft.VisualStudio.Platform
             return container;
         }
 
+		internal ISyntaxHighlighting CreateSyntaxHighlighting(Mono.TextEditor.TextDocument document)
+		{
+			return new TagBasedSyntaxHighlighting(document);
+		}
+
 		[Export]                                        //HACK
 		[Name("csharp")]                                //HACK
 		[BaseDefinition("code")]                        //HACK
@@ -107,6 +113,9 @@ namespace Microsoft.VisualStudio.Platform
 
 		[Import]
 		internal IBufferTagAggregatorFactoryService BufferTagAggregatorFactoryService { get; private set; }
+
+		[Import]
+		internal IClassifierAggregatorService ClassifierAggregatorService { get; private set; }
 	}
 
 	public interface IThreadHelper
@@ -185,7 +194,7 @@ namespace Microsoft.VisualStudio.Platform
 		private Tuple<ImmutableDictionary<string, IContentType>, ImmutableDictionary<IContentType, string>> maps = Tuple.Create(ImmutableDictionary<string, IContentType>.Empty, ImmutableDictionary<IContentType, string>.Empty);
 	}
 
-	/*
+#if false
 	[Export(typeof(ITaggerProvider))]
 	[ContentType("text")]
 	[TagType(typeof(IClassificationTag))]
@@ -248,5 +257,5 @@ namespace Microsoft.VisualStudio.Platform
 
 		public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
 	}
-	*/
+#endif
 }
