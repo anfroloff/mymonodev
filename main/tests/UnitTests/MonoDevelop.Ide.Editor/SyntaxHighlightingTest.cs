@@ -231,13 +231,13 @@ variables:
   ident: '[A-Za-z_][A-Za-z_0-9]*'
 contexts:
   main:
-    - match: '\b{{ident}}\b'
-      scope: keyword.control
+    - match: '(\b{{ident}}\b)'
+      captures:
+        1: keyword.control
 ";
-			string test = @"
-test 45345ne
-      ^ source
- ^ keyword.control
+			string test = 
+@"test123
+^ keyword.control
 ";
 			RunSublimeHighlightingTest (highlighting, test);
 		}
@@ -329,10 +329,13 @@ typedef struct
 						Assert.NotNull (matchedSegment, "No segment found at : " + seg.Item1);
 						foreach (var segi in seg.Item2.Split (new [] { " " }, StringSplitOptions.RemoveEmptyEntries)) {
 							Console.WriteLine ("line " + line.LineNumber + " : " + editor.GetTextAt (line));
+							Console.WriteLine (segi);
+							Console.WriteLine (string.Join (", ", matchedSegment.ScopeStack.ToArray ()));
 							string mk = null;
 							int d = 0;
 							var expr = StackMatchExpression.Parse (segi);
-							Assert.IsTrue (matchedSegment.ScopeStack.Any (ss => EditorTheme.IsCompatibleScope (expr, new ScopeStack (ss), ref mk, ref d)), "Wrong color at " + seg.Item1 + " expected " + segi + " was " + string.Join (", ", matchedSegment.ScopeStack.ToArray ()));
+							var matchResult = expr.MatchesStack (matchedSegment.ScopeStack, ref mk);
+							Assert.IsTrue (matchResult.Item1, "Wrong color at " + seg.Item1 + " expected " + segi + " was " + string.Join (", ", matchedSegment.ScopeStack.ToArray ()));
 						}
 						expectedSegments.RemoveAt (i);
 						i--;
@@ -434,13 +437,63 @@ typedef struct
 		[Test]
 		public void TestGroupReplacement ()
 		{
-			Assert.AreEqual ("(?<id>[\\w_]*)\\s*[\\w_]*", Sublime3Format.CompileRegex ("(?<id>[A-Z_a-z]*)\\s*\\g<id>"));
+			Assert.AreEqual ("(?<id>[\\w_]*)\\s*\\k<id>", Sublime3Format.CompileRegex ("(?<id>[A-Z_a-z]*)\\s*\\g<id>"));
 		}
 
 		[Test]
 		public void TestGroupNameCorrection ()
 		{
 			Assert.AreEqual ("(?<id_id2>[\\w_]*)", Sublime3Format.CompileRegex ("(?<id-id2>[A-Z_a-z]*)"));
+		}
+
+
+
+		[Test]
+		public void TestGroupNameCorrection_Case2 ()
+		{
+			Assert.AreEqual ("(?<interface_name>\\k<type_name>\\s*\\.\\s*)?", Sublime3Format.CompileRegex ("(?<interface-name>\\g<type-name>\\s*\\.\\s*)?"));
+		}
+
+		[Ignore("Fixme")]
+		[Test]
+		public void TestLookbehindBug ()
+		{
+			string highlighting = @"%YAML 1.2
+---
+name: Test
+file_extensions: [t]
+scope: source
+
+contexts:
+  main:
+    - match: '(?=\{)'
+      scope: outer.bracket
+      push:
+        - include: bracket
+        - match: '(?<=\>)'
+          pop: true
+  bracket:
+    - match: '\{'
+      push:
+        - include: bracket
+        - match: '\}'
+          pop: true
+";
+			string test = @"
+foo
+^ source
+{ 
+  {
+    foo  
+    ^ outer.bracket
+  } 
+}
+^ outer.bracket
+foo
+ ^ source
+";
+			RunSublimeHighlightingTest (highlighting, test);
+
 		}
 	}
 }

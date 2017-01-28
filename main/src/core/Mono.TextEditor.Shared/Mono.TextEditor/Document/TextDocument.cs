@@ -1662,7 +1662,7 @@ namespace Mono.TextEditor
 				line = line.NextLine;
 			} while (line != null && offset < endOffset);
 		}
-
+		
 		public bool Contains (int offset)
 		{
 			return new TextSegment (0, Length).Contains (offset);
