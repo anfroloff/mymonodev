@@ -99,7 +99,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="Microsoft.VisualStudio.Text.Logic">
-      <HintPath>>..\..\packages\Microsoft.VisualStudio.Text.Logic.14.3.25407\lib\net45</HintPath>
+      <HintPath>..\..\packages\Microsoft.VisualStudio.Text.Logic.14.3.25407\lib\net45</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System.ComponentModel.Composition" />
