@@ -175,7 +175,7 @@ namespace Mono.TextEditor
 				SyntaxMode = new SyntaxHighlighting (def, this);
 			} else {
 #if false
-				SyntaxMode = PlatformCatalog.Instance.CreateSyntaxHighlighting(this);
+				SyntaxMode = TagBasedSyntaxHighlighting.CreateSyntaxHighlighting(this);
 #else
 				SyntaxMode = DefaultSyntaxHighlighting.Instance;
 #endif

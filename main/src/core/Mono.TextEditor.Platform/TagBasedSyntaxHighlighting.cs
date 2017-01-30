@@ -51,6 +51,11 @@ namespace Microsoft.VisualStudio.Platform
 {
 	public sealed class TagBasedSyntaxHighlighting : ISyntaxHighlighting
 	{
+		internal static ISyntaxHighlighting CreateSyntaxHighlighting(Mono.TextEditor.TextDocument document)
+		{
+			return new TagBasedSyntaxHighlighting(document);
+		}
+
 		private Mono.TextEditor.TextDocument document { get; }
 		private IClassifier classifier { get; set; }
 

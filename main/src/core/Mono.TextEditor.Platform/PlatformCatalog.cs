@@ -38,7 +38,9 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Mono.Addins;
 using MonoDevelop.Core;
+using MonoDevelop.Core.AddIns;
 using MonoDevelop.Ide.Editor.Highlighting;
 
 using Microsoft.VisualStudio.Text.Classification;
@@ -80,22 +82,42 @@ namespace Microsoft.VisualStudio.Platform
                 {
                 };
 
-            IEnumerable<Assembly> assembliesToCompose = assemblyNames.Select(name => Assembly.Load(name));
-            foreach (Assembly curAssembly in assembliesToCompose)
+            foreach (string assemblyName in assemblyNames)
             {
-                catalog.Catalogs.Add(new AssemblyCatalog(curAssembly));
-            }
+				try
+				{
+					var assembly = Assembly.Load(assemblyName);
+					catalog.Catalogs.Add(new AssemblyCatalog(assembly));
+				}
+				catch (Exception e)
+				{
+					LoggingService.LogError("Workspace can't load assembly " + assemblyName + " to host mef services.", e);
+				}
+			}
 
-            //Create the CompositionContainer with the parts in the catalog
-            CompositionContainer container = new CompositionContainer(catalog);
+			foreach (var node in AddinManager.GetExtensionNodes("/MonoDevelop/Ide/TypeService/PlatformMefHostServices"))
+			{
+				var assemblyNode = node as AssemblyExtensionNode;
+				if (assemblyNode != null)
+				{
+					try
+					{
+
+						var assembly = Assembly.LoadFrom(assemblyNode.FileName);
+						catalog.Catalogs.Add(new AssemblyCatalog(assembly));
+					}
+					catch (Exception e)
+					{
+						LoggingService.LogError("Workspace can't load assembly " + assemblyNode.FileName + " to host mef services.", e);
+					}
+				}
+			}
+
+			//Create the CompositionContainer with the parts in the catalog
+			CompositionContainer container = new CompositionContainer(catalog);
 
             return container;
         }
-
-		internal ISyntaxHighlighting CreateSyntaxHighlighting(Mono.TextEditor.TextDocument document)
-		{
-			return new TagBasedSyntaxHighlighting(document);
-		}
 
 		[Export]                                        //HACK
 		[Name("csharp")]                                //HACK
