@@ -48,6 +48,25 @@ namespace Mono.TextEditor
 
 		List<ISegment> links = new List<ISegment> ();
 
+		public void TrackToNewVersion(Microsoft.VisualStudio.Text.ITextVersion oldVersion, Microsoft.VisualStudio.Text.ITextVersion newVersion, int baseOffset)
+		{
+			var newLinks = new List<ISegment>();
+			foreach (var s in this.Links)
+			{
+				int newStart = Microsoft.VisualStudio.Text.Tracking.TrackPositionForwardInTime(Microsoft.VisualStudio.Text.PointTrackingMode.Positive,
+																								baseOffset + s.Offset,
+																								oldVersion, newVersion);
+
+				int newEnd = Microsoft.VisualStudio.Text.Tracking.TrackPositionForwardInTime(Microsoft.VisualStudio.Text.PointTrackingMode.Positive,
+																								baseOffset + s.Offset + s.Length,
+																								oldVersion, newVersion);
+
+				newLinks.Add(new TextSegment(newStart - baseOffset, newEnd - newStart));
+			}
+
+			this.Links = newLinks;
+		}
+
 		public List<ISegment> Links {
 			get {
 				return links;
@@ -97,11 +116,11 @@ namespace Mono.TextEditor
 		public override string ToString ()
 		{
 			return string.Format ("[TextLink: Name={0}, Links={1}, IsEditable={2}, CurrentText={3}, Values=({4})]", 
-			                      Name, 
-			                      Links.Count, 
-			                      IsEditable, 
-			                      CurrentText, 
-			                      Values.Count);
+								  Name, 
+								  Links.Count, 
+								  IsEditable, 
+								  CurrentText, 
+								  Values.Count);
 		}
 
 		public void AddLink (ISegment segment)
@@ -271,7 +290,7 @@ namespace Mono.TextEditor
 			}
 			
 			editor.Document.BeforeUndoOperation += HandleEditorDocumentBeginUndo;
-			Editor.Document.TextChanged += UpdateLinksOnTextReplace;
+			Editor.Document.TextBuffer.Changed += UpdateLinksOnTextReplace;
 			this.Editor.Caret.PositionChanged += HandlePositionChanged;
 			this.UpdateTextLinks ();
 			this.HandlePositionChanged (null, null);
@@ -298,7 +317,7 @@ namespace Mono.TextEditor
 			Editor.ScrollToCaret ();
 			Editor.Caret.Offset = baseOffset + link.PrimaryLink.EndOffset;
 			Editor.MainSelection = new MonoDevelop.Ide.Editor.Selection (Editor.Document.OffsetToLocation (baseOffset + link.PrimaryLink.Offset),
-			                                      Editor.Document.OffsetToLocation (baseOffset + link.PrimaryLink.EndOffset));
+												  Editor.Document.OffsetToLocation (baseOffset + link.PrimaryLink.EndOffset));
 			Editor.Document.CommitUpdateAll ();
 		}
 
@@ -313,7 +332,7 @@ namespace Mono.TextEditor
 			if (SetCaretPosition && resetCaret)
 				Editor.Caret.Offset = endOffset;
 			
-			Editor.Document.TextChanged -= UpdateLinksOnTextReplace;
+			Editor.Document.TextBuffer.Changed -= UpdateLinksOnTextReplace;
 			this.Editor.Caret.PositionChanged -= HandlePositionChanged;
 			if (undoDepth >= 0)
 				Editor.Document.StackUndoToDepth (undoDepth);
@@ -322,20 +341,15 @@ namespace Mono.TextEditor
 			OnExited (EventArgs.Empty);
 		}
 
-		public bool IsInUpdate {
-			get;
-			set;
-		}
-
 		bool isExited = false;
 		bool wasReplaced = false;
 
-		void UpdateLinksOnTextReplace (object sender, TextChangeEventArgs e)
+		void UpdateLinksOnTextReplace (object sender, Microsoft.VisualStudio.Text.TextContentChangedEventArgs e)
 		{
 			wasReplaced = true;
-			if (!IsInUpdate) {
-				foreach (var change in e.TextChanges) {
-					int offset = change.Offset - baseOffset;
+			if (inUpdateLinkTextNestingLever == 0) {
+				foreach (var change in e.Changes) {
+					int offset = change.OldPosition - baseOffset;
 					if (!links.Any (link => link.Links.Any (segment => segment.Contains (offset)
 						|| segment.EndOffset == offset))) {
 						SetCaretPosition = false;
@@ -345,34 +359,20 @@ namespace Mono.TextEditor
 				}
 			}
 
-			foreach (var change in e.TextChanges) {
-				int offset = change.Offset - baseOffset;
-				int delta = change.ChangeDelta;
-				AdjustLinkOffsets (offset, delta);
+			foreach (TextLink link in links)
+			{
+				link.TrackToNewVersion(e.BeforeVersion, e.AfterVersion, this.baseOffset);
 			}
 
-			UpdateTextLinks ();
-		}
+			endOffset = Microsoft.VisualStudio.Text.Tracking.TrackPositionForwardInTime(Microsoft.VisualStudio.Text.PointTrackingMode.Positive,
+																						endOffset,
+																						e.BeforeVersion, e.AfterVersion);
 
-		void AdjustLinkOffsets (int offset, int delta)
-		{
-			foreach (TextLink link in links) {
-				var newLinks = new List<ISegment> ();
-				foreach (var s in link.Links) {
-					if (offset < s.Offset) {
-						newLinks.Add (new TextSegment (s.Offset + delta, s.Length));
-					} else if (offset < s.EndOffset) {
-						newLinks.Add (new TextSegment (s.Offset, s.Length + delta));
-					} else if (offset == s.EndOffset && delta > 0) {
-						newLinks.Add (new TextSegment (s.Offset, s.Length + delta));
-					} else {
-						newLinks.Add (s);
-					}
-				}
-				link.Links = newLinks;
+			// Only update the edits of the this is a final edit in a squence of nested edits (== edits triggered from a inside the TextChanged event).
+			if (e.AfterVersion == Editor.Document.TextBuffer.CurrentSnapshot.Version)
+			{
+				UpdateTextLinks();
 			}
-			if (baseOffset + offset < endOffset)
-				endOffset += delta;
 		}
 
 		void GotoNextLink (TextLink link)
@@ -522,22 +522,49 @@ namespace Mono.TextEditor
 			UpdateLinkText (link);
 		}
 
+		private int inUpdateLinkTextNestingLever = 0;
+
 		public void UpdateLinkText (TextLink link)
 		{
-			Editor.Document.TextChanged -= UpdateLinksOnTextReplace;
-			for (int i = link.Links.Count - 1; i >= 0; i--) {
-				var s = link.Links [i];
-				int offset = s.Offset + baseOffset;
-				if (offset < 0 || s.Length < 0 || offset + s.Length > Editor.Document.Length)
-					continue;
-				if (Editor.Document.GetTextAt (offset, s.Length) != link.CurrentText) {
-					Editor.Replace (offset, s.Length, link.CurrentText);
-					int delta = link.CurrentText.Length - s.Length;
-					AdjustLinkOffsets (s.Offset, delta);
-					Editor.Document.CommitLineUpdate (Editor.Document.OffsetToLineNumber (offset));
+			try
+			{
+				++inUpdateLinkTextNestingLever;
+
+				using (var edit = Editor.Document.TextBuffer.CreateEdit())
+				{
+					for (int i = 0; (i < link.Links.Count); ++i)
+					{
+						var s = link.Links[i];
+						int offset = s.Offset + baseOffset;
+						if (offset < 0 || s.Length < 0 || offset + s.Length > Editor.Document.Length)
+						{
+							// This should never happen since it implies a corrupted link/bad update following a text change.
+							continue;
+						}
+
+						var span = new Microsoft.VisualStudio.Text.Span(offset, s.Length);
+						if (edit.Snapshot.GetText(span) != link.CurrentText)
+						{
+							edit.Replace(span, link.CurrentText);
+						}
+					}
+
+					edit.Apply();
+				}
+
+
+				// TODO this really should be triggered on the post change if there were any link-inspired updates.
+				for (int i = 0; (i < link.Links.Count); ++i)
+				{
+					var s = link.Links[i];
+					int offset = s.Offset + baseOffset;
+					Editor.Document.CommitLineUpdate(Editor.Document.OffsetToLineNumber(offset));
 				}
 			}
-			Editor.Document.TextChanged += UpdateLinksOnTextReplace;
+			finally
+			{
+				--inUpdateLinkTextNestingLever;
+			}
 		}
 	}
 

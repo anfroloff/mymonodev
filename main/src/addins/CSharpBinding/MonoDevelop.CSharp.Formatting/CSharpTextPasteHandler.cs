@@ -60,7 +60,7 @@ namespace MonoDevelop.CSharp.Formatting
 			if (indent.Editor.Options.IndentStyle == IndentStyle.None ||
 				indent.Editor.Options.IndentStyle == IndentStyle.Auto)
 				return;
-			if (DefaultSourceEditorOptions.Instance.OnTheFlyFormatting) {
+			if (DefaultSourceEditorOptions.Instance.OnTheFlyFormatting && (indent.DocumentContext.Project != null)) {
 				var tree = await indent.DocumentContext.AnalysisDocument.GetSyntaxTreeAsync ();
 				int lineStartOffset = indent.Editor.GetLineByOffset (insertionOffset).Offset;
 				int formatCharsCount = insertedChars + (insertionOffset - lineStartOffset);
