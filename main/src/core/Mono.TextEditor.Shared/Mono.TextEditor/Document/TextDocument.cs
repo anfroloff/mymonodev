@@ -79,7 +79,7 @@ namespace Mono.TextEditor
 
 		private static Microsoft.VisualStudio.Utilities.IContentType GetContentTypeFromMimeType(string mimeType)
 		{
-			Microsoft.VisualStudio.Utilities.IContentType contentType = PlatformCatalog.Instance.MimeToContentTypeRegistryService.GetContentType(mimeType);
+            Microsoft.VisualStudio.Utilities.IContentType contentType = PlatformCatalog.Instance.MimeToContentTypeRegistryService.GetContentType(mimeType);
 			if (contentType == null)
 			{
 				// fallback 1: see if there is a content tyhpe with the same name
@@ -282,13 +282,14 @@ namespace Mono.TextEditor
 				foldedSegments.Remove (e.Node);
 		}
 
-		public TextDocument (string fileName, string mimeType)
+		public TextDocument (string fileName, string mimeType, bool loadFile)
 		{
-			var contentType = GetContentTypeFromMimeType (mimeType);
-			Encoding enc;
-			var text = TextFileUtility.GetText (fileName, out enc);
-			var buffer = PlatformCatalog.Instance.TextBufferFactoryService.CreateTextBuffer (text ?? string.Empty,
-                                                                                             contentType);
+			var contentType = (mimeType == null) ? PlatformCatalog.Instance.TextBufferFactoryService.InertContentType : GetContentTypeFromMimeType(mimeType);
+
+            //TODO convert TextFileUtility to be a IEncodingDetector MEF export
+            Encoding enc = TextFileUtility.DefaultEncoding;
+            var text = loadFile ? (TextFileUtility.GetText(fileName, out enc) ?? string.Empty): string.Empty;
+			var buffer = PlatformCatalog.Instance.TextBufferFactoryService.CreateTextBuffer (text, contentType);
 			
 			this.VsTextDocument = PlatformCatalog.Instance.TextDocumentFactoryService.CreateTextDocument (buffer, fileName);
 			this.VsTextDocument.Encoding = enc;
@@ -296,13 +297,14 @@ namespace Mono.TextEditor
 			this.Initialize();
 		}
 
-		public TextDocument (string text = null)
+		public TextDocument (string text = null, string fileName = null, string mimeType = null)
 		{
-			var buffer = PlatformCatalog.Instance.TextBufferFactoryService.CreateTextBuffer (text ?? string.Empty,
-																							 PlatformCatalog.Instance.TextBufferFactoryService.InertContentType);
+            var contentType = (mimeType == null) ? PlatformCatalog.Instance.TextBufferFactoryService.InertContentType : GetContentTypeFromMimeType(mimeType);
+            var buffer = PlatformCatalog.Instance.TextBufferFactoryService.CreateTextBuffer (text ?? string.Empty,
+                                                                                             contentType);
 
-			this.VsTextDocument = PlatformCatalog.Instance.TextDocumentFactoryService.CreateTextDocument(buffer, string.Empty);
-			this.VsTextDocument.Encoding = MonoDevelop.Core.Text.TextFileUtility.DefaultEncoding;
+			this.VsTextDocument = PlatformCatalog.Instance.TextDocumentFactoryService.CreateTextDocument(buffer, fileName ?? string.Empty);
+			this.VsTextDocument.Encoding = TextFileUtility.DefaultEncoding;
 
 			this.Initialize();
 		}

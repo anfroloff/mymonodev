@@ -175,8 +175,8 @@ namespace MonoDevelop.SourceEditor
 
 		bool loadedInCtor = false;
 
-		public SourceEditorView(string fileName, string mimeType)
-			: this(new DocumentAndLoaded(fileName, mimeType))
+		public SourceEditorView(string fileName, string mimeType, bool loadFile)
+			: this(new DocumentAndLoaded(fileName, mimeType, loadFile))
 		{
 			FileRegistry.Add(this);
 		}
@@ -184,11 +184,6 @@ namespace MonoDevelop.SourceEditor
 		public SourceEditorView(IReadonlyTextDocument document = null)
 			: this(new DocumentAndLoaded(document))
 		{
-			if (document != null)
-			{
-				Document.MimeType = document.MimeType;
-				Document.FileName = document.FileName;
-			}
 			FileRegistry.Add(this);
 		}
 
@@ -262,18 +257,16 @@ namespace MonoDevelop.SourceEditor
 				this.Loaded = loaded;
 			}
 
-			public DocumentAndLoaded (string fileName, string mimeType) {
+			public DocumentAndLoaded (string fileName, string mimeType, bool loadFile) {
 				if (AutoSave.AutoSaveExists(fileName)) {
 					// Don't load the document now, let Load() handle it
-					this.Document = new TextDocument();
-					this.Document.MimeType = mimeType;
-					this.Document.FileName = fileName;
+					this.Document = new TextDocument(fileName, mimeType, loadFile: false);
 
 					this.Loaded = false;
 				} else {
-					this.Document = new TextDocument(fileName, mimeType);
+					this.Document = new TextDocument(fileName, mimeType, loadFile);
 
-					this.Loaded = true;
+					this.Loaded = loadFile;
 				}
 			}
 
@@ -284,14 +277,17 @@ namespace MonoDevelop.SourceEditor
 						this.Document = textDocument;
 					} else {
 						// Shouldn't need this but a fallback if someone provides their own implementation of IReadonlyTextDocument
-						this.Document = new TextDocument(document.Text);
+						this.Document = new TextDocument(document.Text, document.FileName, document.MimeType);
 					}
-				} else {
-					this.Document = new TextDocument();
-				}
 
-				this.Loaded = false;
-			}
+                    this.Loaded = true;
+                }
+                else {
+					this.Document = new TextDocument();
+
+                    this.Loaded = false;
+                }
+            }
 		}
 
 		void Document_MimeTypeChanged (object sender, EventArgs e)

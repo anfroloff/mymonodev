@@ -81,9 +81,9 @@ namespace MonoDevelop.Ide.Editor
 
 		static ConfigurationProperty<double> zoomLevel = ConfigurationProperty.Create ("Editor.ZoomLevel", 1.0d);
 
-		public static TextEditor CreateNewEditor(string fileName, string mimeType, TextEditorType textEditorType = TextEditorType.Default)
+		public static TextEditor CreateNewEditor(string fileName, string mimeType, bool loadFile = true, TextEditorType textEditorType = TextEditorType.Default)
 		{
-			var result = new TextEditor(currentFactory.CreateNewEditor(fileName, mimeType), textEditorType);
+			var result = new TextEditor(currentFactory.CreateNewEditor(fileName, mimeType, loadFile), textEditorType);
 			InitializeTextEditor(result);
 			return result;
 		}

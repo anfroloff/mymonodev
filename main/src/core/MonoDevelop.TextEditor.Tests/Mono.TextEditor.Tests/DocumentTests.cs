@@ -1,4 +1,4 @@
-//
+﻿//
 // DocumentTests.cs
 //
 // Author:
@@ -188,7 +188,7 @@ namespace Mono.TextEditor.Tests
 			var path = Path.GetTempFileName ();
 			File.WriteAllText (path, "Hello World", Encoding.ASCII);
 			try {
-				var document = new TextDocument (path, "text");
+				var document = new TextDocument (path, "text", loadFile: true);
 
 				Assert.AreEqual (0, document.Encoding.GetPreamble ().Length);
 			} finally {
