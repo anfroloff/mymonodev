@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (c) Microsoft Corporation. All rights reserved.
 //  Licensed under the MIT License. See License.txt in the project root for license information.
 //
@@ -46,7 +46,9 @@ namespace Microsoft.VisualStudio.Platform
 
         public Task<HighlightedLine> GetHighlightedLineAsync(IDocumentLine line, CancellationToken cancellationToken)
         {
-            ITextSnapshotLine snapshotLine = (line as Mono.TextEditor.TextDocument.DocumentLineFromTextSnapshotLine)?.Line;
+            ITextSnapshotLine snapshotLine = textBuffer.CurrentSnapshot.GetLineFromLineNumber(line.LineNumber - 1);
+
+            //ITextSnapshotLine snapshotLine = (line as Mono.TextEditor.TextDocument.DocumentLineFromTextSnapshotLine)?.Line;
             if ((this.classifier == null) || (snapshotLine == null))
             {
                 return Task.FromResult(new HighlightedLine(line, new[] { new ColoredSegment(0, line.Length, ScopeStack.Empty) }));

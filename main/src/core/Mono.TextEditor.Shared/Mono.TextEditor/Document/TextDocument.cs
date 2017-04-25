@@ -288,7 +288,7 @@ namespace Mono.TextEditor
 			Encoding enc;
 			var text = TextFileUtility.GetText (fileName, out enc);
 			var buffer = PlatformCatalog.Instance.TextBufferFactoryService.CreateTextBuffer (text ?? string.Empty,
-			                                                                                 PlatformCatalog.Instance.TextBufferFactoryService.InertContentType);
+                                                                                             contentType);
 			
 			this.VsTextDocument = PlatformCatalog.Instance.TextDocumentFactoryService.CreateTextDocument (buffer, fileName);
 			this.VsTextDocument.Encoding = enc;
@@ -298,8 +298,8 @@ namespace Mono.TextEditor
 
 		public TextDocument (string text = null)
 		{
-			var buffer = PlatformCatalog.Instance.TextBufferFactoryService.CreateTextBuffer(text ?? string.Empty,
-																							PlatformCatalog.Instance.TextBufferFactoryService.InertContentType);
+			var buffer = PlatformCatalog.Instance.TextBufferFactoryService.CreateTextBuffer (text ?? string.Empty,
+																							 PlatformCatalog.Instance.TextBufferFactoryService.InertContentType);
 
 			this.VsTextDocument = PlatformCatalog.Instance.TextDocumentFactoryService.CreateTextDocument(buffer, string.Empty);
 			this.VsTextDocument.Encoding = MonoDevelop.Core.Text.TextFileUtility.DefaultEncoding;

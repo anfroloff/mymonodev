@@ -71,7 +71,7 @@ namespace MonoDevelop.SourceEditor
 			return new SourceEditorView ();
 		}
 
-        ITextEditorImpl ITextEditorFactory.CreateNewEditor(string fileName, string mimeType)
+        ITextEditorImpl ITextEditorFactory.CreateNewEditor(string fileName, string mimeType, bool isExistingFile)
         {
             return new SourceEditorView(fileName, mimeType);
         }

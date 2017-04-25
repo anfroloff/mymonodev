@@ -1,4 +1,4 @@
-//
+﻿//
 // ITextEditorFactory.cs
 //
 // Author:
@@ -37,7 +37,7 @@ namespace MonoDevelop.Ide.Editor
 		IReadonlyTextDocument CreateNewReadonlyDocument (ITextSource textSource, string fileName, string mimeType);
 
 		ITextEditorImpl CreateNewEditor ();
-		ITextEditorImpl CreateNewEditor (string fileName, string mimeType);
+		ITextEditorImpl CreateNewEditor (string fileName, string mimeType, bool isExistingFile = true);
 		ITextEditorImpl CreateNewEditor (IReadonlyTextDocument document);
 
 		string[] GetSyntaxProperties (string mimeType, string name);
