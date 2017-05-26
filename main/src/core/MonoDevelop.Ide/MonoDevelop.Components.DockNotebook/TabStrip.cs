@@ -1179,7 +1179,7 @@ namespace MonoDevelop.Components.DockNotebook
 			
 			tab.CloseButtonActiveArea = closeButtonAlloation.Inflate (2, 2);
 
-			var spinButtonAllocation = new Cairo.Rectangle (closeButtonAlloation.X - rightPadding - (tabPinnedImage.Width / 2) - PinButtonMarginRight,
+			var spinButtonAllocation = new Cairo.Rectangle (closeButtonAlloation.X - rightPadding - PinButtonMarginRight,
 									 closeButtonAlloation.Y,
 									 tabPinnedImage.Width, tabPinnedImage.Height);
 
