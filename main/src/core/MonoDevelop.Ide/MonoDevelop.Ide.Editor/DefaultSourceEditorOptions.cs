@@ -317,7 +317,7 @@ namespace MonoDevelop.Ide.Editor
 			}
 		}
 
-		ConfigurationProperty<bool> enablePinTabs = ConfigurationProperty.Create ("EnablePinTabs", false);
+		ConfigurationProperty<bool> enablePinTabs = ConfigurationProperty.Create ("EnablePinTabs", true);
 		public bool EnablePinTabs {
 			get {
 				return enablePinTabs;
