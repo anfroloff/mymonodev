@@ -600,10 +600,17 @@ namespace MonoDevelop.Ide.CodeCompletion
 				iypos = iconHeight < rowHeight ? ypos + (rowHeight - iconHeight) / 2 : ypos;
 				if (item == SelectedItemIndex) {
 					var barStyle = SelectionEnabled ? Styles.CodeCompletion.SelectionBackgroundColor : Styles.CodeCompletion.SelectionBackgroundInactiveColor;
-
-					context.Rectangle (0, ypos, Allocation.Width, rowHeight);
 					context.SetSourceColor (barStyle.ToCairoColor ());
-					context.Fill ();
+
+					if (SelectionEnabled) {
+						context.Rectangle (0, ypos, Allocation.Width, rowHeight);
+						context.Fill ();
+					} else {
+						context.LineWidth++;
+						context.Rectangle (0.5, ypos + 0.5, Allocation.Width - 1, rowHeight - 1);
+						context.Stroke ();
+						context.LineWidth--;
+					}
 				}
 
 				if (icon != null) {
@@ -728,22 +735,33 @@ namespace MonoDevelop.Ide.CodeCompletion
 				}
 			}
 			filteredItems.Sort (delegate (int left, int right) {
-				int rank1, rank2;
 				var data1 = dataList [left];
 				var data2 = dataList [right];
-				if (data1 == null || data2 == null)
-					return 0;
+				if (data1 != null && data2 == null)
+					return -1;
+				if (data1 == null && data2 != null)
+					return 1;
+				if (data1 == null && data2 == null)
+					return left.CompareTo (right);
+
 				if (data1.PriorityGroup != data2.PriorityGroup)
 					return data2.PriorityGroup.CompareTo (data1.PriorityGroup);
+
 				if (string.IsNullOrEmpty (CompletionString))
 					return CompareTo (dataList, left, right);
 
-				if (!matcher.CalcMatchRank (data1.CompletionText, out rank1))
-					return 0;
-				if (!matcher.CalcMatchRank (data2.CompletionText, out rank2))
-					return 0;
+				int rank1, rank2;
+				bool hasRank1 = matcher.CalcMatchRank (data1.CompletionText, out rank1);
+				bool hasRank2 = matcher.CalcMatchRank (data2.CompletionText, out rank2);
+				if (!hasRank1 && hasRank2)
+					return 1;
+				if (hasRank1 && !hasRank2)
+					return -1;
 
-				return rank2.CompareTo (rank1);
+				if (rank1 != rank2)
+					return rank2.CompareTo (rank1);
+
+				return left.CompareTo (right);
 			});
 
 			// put the item from a lower priority group with the highest match rank always to position #2
@@ -786,19 +804,7 @@ namespace MonoDevelop.Ide.CodeCompletion
 			return new CompletionListFilterResult (filteredItems, newCategories);
 		}
 
-
-		class DataItemComparer : IComparer<CompletionData>
-		{
-			public int Compare (CompletionData a, CompletionData b)
-			{
-				if (a == b)
-					return 0;
-				if (a is IComparable && b is IComparable)
-						return ((IComparable)a).CompareTo (b);
-				return CompletionData.Compare (a, b);
-			}
-		}
-		internal static readonly IComparer<CompletionData> overloadComparer = new DataItemComparer ();
+		internal static readonly IComparer<CompletionData> overloadComparer = CompletionData.Comparer;
 		internal static IComparer<CompletionData> defaultComparer;
 
 		internal static int CompareTo (ICompletionDataList completionDataList, int n, int m)
@@ -819,7 +825,7 @@ namespace MonoDevelop.Ide.CodeCompletion
 		internal static IComparer<CompletionData> GetComparerForCompletionList (ICompletionDataList dataList)
 		{
 			var concrete = dataList as CompletionDataList;
-			return concrete != null && concrete.Comparer != null ? concrete.Comparer : new DataItemComparer ();
+			return concrete != null && concrete.Comparer != null ? concrete.Comparer : CompletionData.Comparer;
 		}
 
 		public void FilterWords ()

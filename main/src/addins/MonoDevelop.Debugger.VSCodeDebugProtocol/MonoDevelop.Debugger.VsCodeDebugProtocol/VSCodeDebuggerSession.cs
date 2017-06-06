@@ -56,7 +56,6 @@ namespace MonoDevelop.Debugger.VsCodeDebugProtocol
 
 		protected override void OnEnableBreakEvent (BreakEventInfo eventInfo, bool enable)
 		{
-			eventInfo.BreakEvent.Enabled = enable;
 			UpdateExceptions ();
 			UpdateBreakpoints ();
 		}
@@ -87,12 +86,10 @@ namespace MonoDevelop.Debugger.VsCodeDebugProtocol
 			var threadsResponse = protocolClient.SendRequestSync (new ThreadsRequest ());
 			var threads = new ThreadInfo [threadsResponse.Threads.Count];
 			for (int i = 0; i < threads.Length; i++) {
-				var backtrace = this.GetThreadBacktrace (threadsResponse.Threads [i].Id);
 				threads [i] = new ThreadInfo (processId,
-										  threadsResponse.Threads [i].Id,
+											  threadsResponse.Threads [i].Id,
 											  threadsResponse.Threads [i].Name,
-											  backtrace.FrameCount > 0 ? backtrace.GetFrame (0).ToString () : "",
-											  backtrace);
+											  null);
 			}
 			return threads;
 		}
@@ -122,7 +119,7 @@ namespace MonoDevelop.Debugger.VsCodeDebugProtocol
 			if (protocolClient == null)
 				return;
 
-			var hasCustomExceptions = breakpoints.Select (b => b.Key).OfType<Catchpoint> ().Any ();
+			var hasCustomExceptions = breakpoints.Select (b => b.Key).OfType<Catchpoint> ().Any (e => e.Enabled);
 			if (currentExceptionState != hasCustomExceptions) {
 				currentExceptionState = hasCustomExceptions;
 				protocolClient.SendRequest (new SetExceptionBreakpointsRequest (
@@ -280,8 +277,8 @@ namespace MonoDevelop.Debugger.VsCodeDebugProtocol
 					}
 					currentThreadId = body.ThreadId ?? -1;
 					//TODO: what happens if thread is not specified?
-					args.Process = OnGetProcesses () [0];
-					args.Thread = GetThread (args.Process, (long)body.ThreadId);
+					args.Process = GetProcesses () [0];
+					args.Thread = args.Process.GetThreads ().Single (t => t.Id == currentThreadId);
 					args.Backtrace = args.Thread.Backtrace;
 
 					OnTargetEvent (args);
@@ -310,15 +307,6 @@ namespace MonoDevelop.Debugger.VsCodeDebugProtocol
 					break;
 				}
 			});
-		}
-
-		ThreadInfo GetThread (ProcessInfo process, long threadId)
-		{
-			foreach (var threadInfo in OnGetThreads (process.Id)) {
-				if (threadInfo.Id == threadId)
-					return threadInfo;
-			}
-			return null;
 		}
 
 		List<string> pathsWithBreakpoints = new List<string> ();

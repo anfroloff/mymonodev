@@ -22,9 +22,12 @@ namespace MonoDevelop.Debugger.VsCodeDebugProtocol
 
 		public VSCodeObjectSource (VSCodeDebuggerSession vsCodeDebuggerSession, int variablesReference, int parentVariablesReference, string name, string type, string evalName, int frameId, string val)
 		{
-			this.type = type;
+			this.type = type ?? string.Empty;
 			this.frameId = frameId;
 			this.evalName = evalName;
+			var indexOfType = name.LastIndexOf (" [", StringComparison.Ordinal);
+			if (indexOfType != -1)
+				name = name.Remove (indexOfType);
 			this.name = name;
 			this.vsCodeDebuggerSession = vsCodeDebuggerSession;
 			this.variablesReference = variablesReference;
@@ -35,10 +38,14 @@ namespace MonoDevelop.Debugger.VsCodeDebugProtocol
 		public ObjectValue [] GetChildren (ObjectPath path, int index, int count, EvaluationOptions options)
 		{
 			if (objValChildren == null) {
-				var children = vsCodeDebuggerSession.protocolClient.SendRequestSync (new VariablesRequest (
-					variablesReference
-				)).Variables;
-				objValChildren = children.Select (c => VSCodeDebuggerBacktrace.VsCodeVariableToObjectValue (vsCodeDebuggerSession, c.Name, c.EvaluateName, c.Type, c.Value, c.VariablesReference, variablesReference, frameId)).ToArray ();
+				if (variablesReference <= 0) {
+					objValChildren = new ObjectValue [0];
+				} else {
+					var children = vsCodeDebuggerSession.protocolClient.SendRequestSync (new VariablesRequest (
+						variablesReference
+					)).Variables;
+					objValChildren = children.Select (c => VSCodeDebuggerBacktrace.VsCodeVariableToObjectValue (vsCodeDebuggerSession, c.Name, c.EvaluateName, c.Type, c.Value, c.VariablesReference, variablesReference, frameId)).ToArray ();
+				}
 			}
 			return objValChildren;
 		}
@@ -84,17 +91,11 @@ namespace MonoDevelop.Debugger.VsCodeDebugProtocol
 
 		public ObjectValue GetValue (ObjectPath path, EvaluationOptions options)
 		{
-			string shortName = name;
-			var indexOfSpace = name.IndexOf (' ');
-			if (indexOfSpace != -1)//Remove " [TypeName]" from variable name
-				shortName = name.Remove (indexOfSpace);
-			if (type == null)
-				return ObjectValue.CreateError (null, new ObjectPath (shortName), "", val, ObjectValueFlags.None);
 			if (val == "null")
-				return ObjectValue.CreateNullObject (this, shortName, type, parentVariablesReference > 0 ? ObjectValueFlags.None : ObjectValueFlags.ReadOnly);
+				return ObjectValue.CreateNullObject (this, name, type, parentVariablesReference > 0 ? ObjectValueFlags.None : ObjectValueFlags.ReadOnly);
 			if (variablesReference == 0)//This is some kind of primitive...
-				return ObjectValue.CreatePrimitive (this, new ObjectPath (shortName), type, new EvaluationResult (val), parentVariablesReference > 0 ? ObjectValueFlags.None : ObjectValueFlags.ReadOnly);
-			return ObjectValue.CreateObject (this, new ObjectPath (shortName), type, new EvaluationResult (val), parentVariablesReference > 0 ? ObjectValueFlags.None : ObjectValueFlags.ReadOnly, null);
+				return ObjectValue.CreatePrimitive (this, new ObjectPath (name), type, new EvaluationResult (val), parentVariablesReference > 0 ? ObjectValueFlags.None : ObjectValueFlags.ReadOnly);
+			return ObjectValue.CreateObject (this, new ObjectPath (name), type, new EvaluationResult (val), parentVariablesReference > 0 ? ObjectValueFlags.None : ObjectValueFlags.ReadOnly, null);
 		}
 
 		public void SetRawValue (ObjectPath path, object value, EvaluationOptions options)
