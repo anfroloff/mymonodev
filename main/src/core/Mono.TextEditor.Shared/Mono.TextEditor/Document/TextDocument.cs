@@ -1277,7 +1277,7 @@ namespace Mono.TextEditor
 				if (!startTask) {
 					var newFoldedSegments = UpdateFoldSegmentWorker (newSegments, out update);
 					if (useApplicationInvoke) {
-						Gtk.Application.Invoke (delegate {
+						Gtk.Application.Invoke ((o, args) => {
 							foldedSegments = newFoldedSegments;
 							InformFoldTreeUpdated ();
 						});
@@ -1295,7 +1295,7 @@ namespace Mono.TextEditor
 					if (token.IsCancellationRequested)
 						return;
 					foldedSegments = segments;
-					Gtk.Application.Invoke (delegate {
+					Gtk.Application.Invoke ((o, args) => {
 						if (token.IsCancellationRequested)
 							return;
 						InformFoldTreeUpdated ();
