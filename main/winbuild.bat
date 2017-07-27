@@ -1,8 +1,12 @@
 @echo off
 setlocal enableextensions enabledelayedexpansion
 
-rem try to find MSBuild in VS2017
-rem the "correct" way is to use a COM API. not easy here.
+if exist "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" (
+	FOR /F "delims=" %%E in ('"%ProgramFiles(x86)%\Microsoft Visual Studio\installer\vswhere.exe" -latest -property installationPath') DO (
+		set "MSBUILD_EXE=%%E\MSBuild\15.0\Bin\MSBuild.exe"
+		if exist "!MSBUILD_EXE!" goto :build
+	)
+)
 
 FOR %%E in (Enterprise, Professional, Community) DO (
 	set "MSBUILD_EXE=%ProgramFiles(x86)%\Microsoft Visual Studio\2017\%%E\MSBuild\15.0\Bin\MSBuild.exe"
@@ -11,6 +15,9 @@ FOR %%E in (Enterprise, Professional, Community) DO (
 
 REM Couldn't be located in the standard locations, expand search
 FOR /F "delims=" %%E IN ('dir /b /ad "%ProgramFiles(x86)%\Microsoft Visual Studio\"') DO (
+	set "MSBUILD_EXE=%ProgramFiles(x86)%\Microsoft Visual Studio\%%E\MSBuild\15.0\Bin\MSBuild.exe"
+	if exist "!MSBUILD_EXE!" goto :build
+
 	FOR /F "delims=" %%F IN ('dir /b /ad "%ProgramFiles(x86)%\Microsoft Visual Studio\%%E"') DO (
 		set "MSBUILD_EXE=%ProgramFiles(x86)%\Microsoft Visual Studio\%%E\%%F\MSBuild\15.0\Bin\MSBuild.exe"
 		if exist "!MSBUILD_EXE!" goto :build

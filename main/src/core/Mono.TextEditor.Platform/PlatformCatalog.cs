@@ -1,4 +1,4 @@
-﻿//
+//
 //  Copyright (c) Microsoft Corporation. All rights reserved.
 //  Licensed under the MIT License. See License.txt in the project root for license information.
 //
@@ -25,66 +25,30 @@ using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
+using MonoDevelop.Ide.Composition;
 
 namespace Microsoft.VisualStudio.Platform
 {
+    [Export]
     public class PlatformCatalog
     {
-        public static readonly PlatformCatalog Instance = new PlatformCatalog();
-
-        public CompositionContainer CompositionContainer { get; }
-
-        PlatformCatalog()
-        {
-            var container = PlatformCatalog.CreateContainer();
-            container.SatisfyImportsOnce(this);
-
-            this.CompositionContainer = container;
-        }
-
-        static CompositionContainer CreateContainer()
-        {
-            // TODO: Read these from manifest.addin.xml?
-            AggregateCatalog catalog = new AggregateCatalog();
-            catalog.Catalogs.Add(new AssemblyCatalog(typeof(PlatformCatalog).Assembly));
-
-            foreach (var node in AddinManager.GetExtensionNodes("/MonoDevelop/Ide/TypeService/PlatformMefHostServices"))
-            {
-                var assemblyNode = node as AssemblyExtensionNode;
-                if (assemblyNode != null)
-                {
-                    try
-                    {
-						// Make sure the add-in that registered the assembly is loaded, since it can bring other
-						// other assemblies required to load this one
-						AddinManager.LoadAddin(null, assemblyNode.Addin.Id);
-
-                        var assemblyFilePath = assemblyNode.Addin.GetFilePath(assemblyNode.FileName);
-                        var assembly = MonoDevelop.Core.Platform.AssemblyLoad(assemblyFilePath);
-                        catalog.Catalogs.Add(new AssemblyCatalog(assembly));
-                    }
-                    catch (Exception e)
-                    {
-                        LoggingService.LogError("Workspace can't load assembly " + assemblyNode.FileName + " to host mef services.", e);
-                    }
+        static PlatformCatalog instance;
+        public static PlatformCatalog Instance {
+            get {
+                if (instance == null) {
+                    instance = CompositionManager.GetExportedValue<PlatformCatalog>();
                 }
+
+                return instance;
             }
-
-            //Create the CompositionContainer with the parts in the catalog
-            CompositionContainer container = new CompositionContainer(catalog,
-                                                                      CompositionOptions.DisableSilentRejection |
-                                                                      CompositionOptions.IsThreadSafe |
-                                                                      CompositionOptions.ExportCompositionService);
-
-            return container;
         }
 
         [Import]
         internal ITextBufferFactoryService _textBufferFactoryService { get; private set; }
 
-		public ITextBufferFactoryService2 TextBufferFactoryService => (ITextBufferFactoryService2)_textBufferFactoryService;
+        public ITextBufferFactoryService2 TextBufferFactoryService => (ITextBufferFactoryService2)_textBufferFactoryService;
 
-		[Import]
+        [Import]
         internal ITextDocumentFactoryService TextDocumentFactoryService { get; private set; }
 
         [Import]
@@ -138,15 +102,15 @@ namespace Microsoft.VisualStudio.Platform
     [Export(typeof(IMimeToContentTypeRegistryService))]
     public class MimeToContentTypeRegistryService : IMimeToContentTypeRegistryService, IPartImportsSatisfiedNotification
     {
-		[Import]
-		IContentTypeRegistryService ContentTypeRegistryService { get; set; }
+        [Import]
+        IContentTypeRegistryService ContentTypeRegistryService { get; set; }
 
-		[Export]
-		[Name ("csharp")]
-		[BaseDefinition ("code")]
-		public ContentTypeDefinition codeContentType;
+        [Export]
+        [Name ("csharp")]
+        [BaseDefinition ("code")]
+        public ContentTypeDefinition codeContentType;
 
-		public string GetMimeType(IContentType type)
+        public string GetMimeType(IContentType type)
         {
             string mimeType;
             if (this.maps.Item2.TryGetValue(type, out mimeType))
@@ -187,24 +151,25 @@ namespace Microsoft.VisualStudio.Platform
             }
         }
 
-		void LinkTypes (string mimeType, string contentType)
-		{
-			LinkTypes (mimeType, ContentTypeRegistryService.GetContentType (contentType));
-		}
+        void LinkTypes (string mimeType, string contentType)
+        {
+            LinkTypes (mimeType, ContentTypeRegistryService.GetContentType (contentType));
+        }
 
-		void IPartImportsSatisfiedNotification.OnImportsSatisfied ()
-		{
-			LinkTypes ("text/plain", "text");
-			LinkTypes ("text/x-csharp", "csharp");
+        void IPartImportsSatisfiedNotification.OnImportsSatisfied ()
+        {
+            LinkTypes ("text/plain", "text");
+            LinkTypes ("text/x-csharp", "csharp");
 
-			if (this.ContentTypeRegistryService.GetContentType ("css") != null) {
-				LinkTypes ("text/x-css", "css");
-				LinkTypes ("text/x-html", "htmlx");
-				LinkTypes ("text/x-json", "JSON");
-			}
-		}
+            if (this.ContentTypeRegistryService.GetContentType ("css") != null) {
+                LinkTypes ("text/x-cshtml-web", "RazorCSharp");
+                LinkTypes ("text/x-css", "css");
+                LinkTypes ("text/x-html", "htmlx");
+                LinkTypes ("text/x-json", "JSON");
+            }
+        }
 
-		Tuple<ImmutableDictionary<string, IContentType>, ImmutableDictionary<IContentType, string>> maps = Tuple.Create(ImmutableDictionary<string, IContentType>.Empty, ImmutableDictionary<IContentType, string>.Empty);
+        Tuple<ImmutableDictionary<string, IContentType>, ImmutableDictionary<IContentType, string>> maps = Tuple.Create(ImmutableDictionary<string, IContentType>.Empty, ImmutableDictionary<IContentType, string>.Empty);
     }
 
     // Fold back into Text.Def.TextData.TextSnapshotToTextReader

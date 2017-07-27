@@ -1,4 +1,4 @@
-﻿//
+//
 //  Copyright (c) Microsoft Corporation. All rights reserved.
 //  Licensed under the MIT License. See License.txt in the project root for license information.
 //
@@ -31,7 +31,7 @@ namespace Microsoft.VisualStudio.Text.Editor.Implementation
     /// Provides a VisualStudio Service that aids in creation of Editor Views
     /// </summary>
     [Export(typeof(ITextEditorFactoryService))]
-    internal sealed class TextEditorFactoryService : ITextEditorFactoryService
+    internal sealed class TextEditorFactoryService : ITextEditorFactoryService, ITextEditorFactoryService2
     {
         [Import]
         internal GuardedOperations GuardedOperations { get; set; }
@@ -100,7 +100,35 @@ namespace Microsoft.VisualStudio.Text.Editor.Implementation
                                                                                      PredefinedTextViewRoles.Structured,
                                                                                      PredefinedTextViewRoles.Zoomable);
 
-        public IWpfTextView CreateTextView (MonoDevelop.Ide.Editor.TextEditor textEditor, ITextViewRoleSet roles = null, IEditorOptions parentOptions = null)
+        public IWpfTextView CreateTextView (ITextViewModel viewModel, ITextViewRoleSet roles, IEditorOptions parentOptions)
+        {
+            throw new NotImplementedException ();
+        }
+
+        public IWpfTextView CreateTextView (ITextDataModel dataModel, ITextViewRoleSet roles, IEditorOptions parentOptions)
+        {
+            throw new NotImplementedException ();
+        }
+
+        public IWpfTextView CreateTextView (ITextBuffer textBuffer, ITextViewRoleSet roles)
+        {
+            return CreateTextView(textBuffer, roles, parentOptions: null);
+        }
+
+        public IWpfTextView CreateTextView ()
+        {
+            throw new NotImplementedException ();
+        }
+
+        public IWpfTextView CreateTextView (ITextBuffer textBuffer, ITextViewRoleSet roles, IEditorOptions parentOptions)
+        {
+            MonoDevelop.Ide.Editor.ITextDocument textDocument = textBuffer.GetTextEditor ();
+            TextEditor textEditor = textDocument as TextEditor;
+
+            return CreateTextView (textEditor);
+        }
+
+        public IWpfTextView CreateTextView (TextEditor textEditor, ITextViewRoleSet roles = null, IEditorOptions parentOptions = null)
         {
             if (textEditor == null)
             {
@@ -129,6 +157,11 @@ namespace Microsoft.VisualStudio.Text.Editor.Implementation
             this.TextViewCreated?.Invoke(this, new TextViewCreatedEventArgs(view));
 
             return view;
+        }
+
+        public IWpfTextView CreateTextView (ITextBuffer textBuffer)
+        {
+            return CreateTextView (textBuffer, roles: null);
         }
 
         public ITextViewRoleSet NoRoles
