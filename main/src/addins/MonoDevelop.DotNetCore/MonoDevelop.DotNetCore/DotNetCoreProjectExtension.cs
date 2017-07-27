@@ -55,6 +55,11 @@ namespace MonoDevelop.DotNetCore
 
 		protected override bool SupportsObject (WorkspaceObject item)
 		{
+			return DotNetCoreSupportsObject(item) && !IsWebProject ((DotNetProject)item);
+		}
+
+		protected bool DotNetCoreSupportsObject (WorkspaceObject item)
+		{
 			return base.SupportsObject (item) && IsSdkProject ((DotNetProject)item);
 		}
 
@@ -157,9 +162,11 @@ namespace MonoDevelop.DotNetCore
 				EnvironmentVariables = dotnetCoreRunConfiguration?.EnvironmentVariables,
 				PauseConsoleOutput = dotnetCoreRunConfiguration?.PauseConsoleOutput ?? false,
 				ExternalConsole = dotnetCoreRunConfiguration?.ExternalConsole ?? false,
+#pragma warning disable CS0618 // Type or member is obsolete
 				LaunchBrowser = dotnetCoreRunConfiguration?.LaunchBrowser ?? false,
 				LaunchURL = dotnetCoreRunConfiguration?.LaunchUrl,
 				ApplicationURL = dotnetCoreRunConfiguration?.ApplicationURL,
+#pragma warning restore CS0618 // Type or member is obsolete
 				PipeTransport = dotnetCoreRunConfiguration?.PipeTransport
 			};
 		}
@@ -186,7 +193,7 @@ namespace MonoDevelop.DotNetCore
 			return FilePath.Null;
 		}
 
-		FilePath GetOutputFileName (DotNetProjectConfiguration configuration)
+		protected FilePath GetOutputFileName (DotNetProjectConfiguration configuration)
 		{
 			FilePath outputDirectory = GetOutputDirectory (configuration);
 			string assemblyName = Project.Name;
@@ -221,8 +228,8 @@ namespace MonoDevelop.DotNetCore
 				Project.ParentSolution.ExtendedProperties [ShownDotNetCoreSdkInstalledExtendedPropertyName] = "true";
 
 				using (var dialog = new DotNetCoreNotInstalledDialog ()) {
-					if (unsupportedSdkVersion)
-						dialog.Message = GettextCatalog.GetString ("The .NET Core SDK installed is not supported. Please install a more recent version.");
+					dialog.IsUnsupportedVersion = unsupportedSdkVersion;
+					dialog.RequiresDotNetCore20 = Project.TargetFramework.IsNetStandard20OrNetCore20 ();
 					dialog.Show ();
 				}
 			});
@@ -354,13 +361,23 @@ namespace MonoDevelop.DotNetCore
 
 		BuildResult CreateDotNetCoreSdkRequiredBuildResult (bool isUnsupportedVersion)
 		{
-			return CreateBuildError (GetDotNetCoreSdkRequiredBuildErrorMessage (isUnsupportedVersion));
+			bool requiresDotNetCoreSdk20 = Project.TargetFramework.IsNetStandard20OrNetCore20 ();
+			return CreateBuildError (GetDotNetCoreSdkRequiredBuildErrorMessage (isUnsupportedVersion, requiresDotNetCoreSdk20));
 		}
 
-		static string GetDotNetCoreSdkRequiredBuildErrorMessage (bool isUnsupportedVersion)
+		internal string GetDotNetCoreSdkRequiredMessage ()
+		{
+			return GetDotNetCoreSdkRequiredBuildErrorMessage (
+				IsUnsupportedDotNetCoreSdkInstalled (),
+				Project.TargetFramework.IsNetStandard20OrNetCore20 ());
+		}
+
+		static string GetDotNetCoreSdkRequiredBuildErrorMessage (bool isUnsupportedVersion, bool requiresDotNetCoreSdk20)
 		{
 			if (isUnsupportedVersion)
 				return GettextCatalog.GetString ("The .NET Core SDK installed is not supported. Please install a more recent version. {0}", DotNetCoreNotInstalledDialog.DotNetCoreDownloadUrl);
+			else if (requiresDotNetCoreSdk20)
+				return GettextCatalog.GetString (".NET Core 2.0 SDK is not installed. This is required to build .NET Core 2.0 projects. {0}", DotNetCoreNotInstalledDialog.DotNetCore20DownloadUrl);
 
 			return GettextCatalog.GetString (".NET Core SDK is not installed. This is required to build .NET Core projects. {0}", DotNetCoreNotInstalledDialog.DotNetCoreDownloadUrl);
 		}
@@ -375,8 +392,13 @@ namespace MonoDevelop.DotNetCore
 			get { return dotNetCoreMSBuildProject.HasSdk; }
 		}
 
+		protected bool IsWebProject (DotNetProject project)
+		{
+			return (project.MSBuildProject.Sdk?.IndexOf ("Microsoft.NET.Sdk.Web", System.StringComparison.OrdinalIgnoreCase) ?? -1) != -1;
+		}
+
 		public bool IsWeb {
-			get { return (dotNetCoreMSBuildProject.Sdk?.IndexOf ("Microsoft.NET.Sdk.Web", System.StringComparison.OrdinalIgnoreCase) ?? -1) != -1; }
+			get { return IsWebProject (Project);  }
 		}
 
 		protected override void OnPrepareForEvaluation (MSBuildProject project)
@@ -463,7 +485,9 @@ namespace MonoDevelop.DotNetCore
 
 		public bool IsDotNetCoreSdkInstalled ()
 		{
-			return DotNetCoreSdk.IsInstalled || MSBuildSdks.Installed;
+			if (DotNetCoreSdk.IsInstalled || MSBuildSdks.Installed)
+				return DotNetCoreSdk.IsSupported (Project.TargetFramework);
+			return false;
 		}
 
 		public bool IsUnsupportedDotNetCoreSdkInstalled ()

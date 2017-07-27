@@ -462,7 +462,7 @@ namespace MonoDevelop.Core
         private string AddItem(string chars, int start, int len, int hashCode)
         {
             var text = chars.Substring(start, len);
-            AddCore(chars, hashCode);
+            AddCore(text, hashCode);
             return text;
         }
 
@@ -535,6 +535,33 @@ namespace MonoDevelop.Core
 
             return AddSharedSlow(hashCode, chars);
         }
+
+		internal static string AddShared (string chars)
+		{
+			var hashCode = Hash.GetFNVHashCode (chars);
+
+			string shared = FindSharedEntry (chars, hashCode);
+			if (shared != null) {
+				return shared;
+			}
+
+			AddSharedSlow (hashCode, chars);
+			return chars;
+		}
+
+		internal static string AddShared (string chars, int start, int len)
+		{
+			var hashCode = Hash.GetFNVHashCode (chars, start, len);
+
+			string shared = FindSharedEntry (chars, start, len, hashCode);
+			if (shared != null) {
+				return shared;
+			}
+
+			string text = chars.Substring (start, len);
+			AddSharedSlow (hashCode, text);
+			return text;
+		}
 
         private static string AddSharedSlow(int hashCode, StringBuilder builder)
         {

@@ -41,7 +41,11 @@ module Symbols =
 
         let startOffset = doc.LocationToOffset(start.Line, start.Column+1)
         let endOffset = doc.LocationToOffset(finish.Line, finish.Column+1)
-        let startOffset = if startOffset = endOffset then endOffset-lastIdent.Length else startOffset
+        let startOffset =
+            if startOffset = endOffset then 
+                endOffset-symbolUse.Symbol.DisplayName.Length
+            else
+                startOffset
         MonoDevelop.Core.Text.TextSegment.FromBounds(startOffset, endOffset)
 
     let getEditorDataForFileName (fileName:string) =
@@ -190,7 +194,10 @@ module SymbolUse =
         | _ -> None
 
     let inline private notCtorOrProp (symbol:FSharpMemberOrFunctionOrValue) =
-        not symbol.IsConstructor && not symbol.IsPropertyGetterMethod && not symbol.IsPropertySetterMethod
+        not symbol.IsConstructor && 
+        not symbol.IsPropertyGetterMethod && 
+        not symbol.IsPropertySetterMethod &&
+        not (symbol.LogicalName = ".ctor")
 
     let (|Method|_|) (symbolUse:FSharpSymbolUse) =
         match symbolUse with

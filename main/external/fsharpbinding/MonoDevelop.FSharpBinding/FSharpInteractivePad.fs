@@ -189,6 +189,7 @@ type FSharpInteractivePad() =
 
     let setPrompt() =
         editor.InsertAtCaret ("\n")
+        editor.ScrollTo editor.CaretLocation
         addMarker promptIcon
 
     let fsiOutput t =
@@ -579,7 +580,15 @@ type FSharpFsiEditorCompletion() =
       inherit FSharpFileInteractiveCommand(fun fsi -> fsi.SendFile())
 
   type SendReferences() =
-      inherit FSharpFileInteractiveCommand(fun fsi -> fsi.LoadReferences(IdeApp.Workbench.ActiveDocument.Project :?> FSharpProject))
+      inherit CommandHandler()
+      override x.Run() =
+          async {
+              let project = IdeApp.Workbench.ActiveDocument.Project :?> FSharpProject
+              do! project.GetReferences()
+              FSharpInteractivePad.Fsi
+              |> Option.iter (fun fsi -> fsi.LoadReferences(project)
+                                         FSharpInteractivePad.BringToFront(false))
+          } |> Async.StartImmediate
 
   type RestartFsi() =
       inherit InteractiveCommand(fun fsi -> fsi.RestartFsi())
