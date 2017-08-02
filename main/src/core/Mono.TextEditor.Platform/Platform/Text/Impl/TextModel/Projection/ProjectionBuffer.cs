@@ -286,7 +286,13 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                 initialLength += snapSpan.Length;
                 snapshotSpans.Add(snapSpan);
             }
-            this.currentVersion.InternalLength = initialLength; // this is a bit hacky
+
+            StringRebuilder newBuilder = StringRebuilder.Empty;
+            for (int i = 0; (i < snapshotSpans.Count); ++i)
+                newBuilder = newBuilder.Append(BufferFactoryService.StringRebuilderFromSnapshotSpan(snapshotSpans[i]));
+            this.builder = newBuilder;
+
+            this.currentVersion.SetLength(initialLength); // this is a bit hacky
 
             FrugalList<ITextBuffer> addedBuffers;
             FrugalList<ITextBuffer> removedBuffers;
@@ -315,8 +321,8 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             }
             this.group = chosenGroup ?? new BufferGroup(this);
 
-            this.currentProjectionSnapshot = new ProjectionSnapshot(this, base.currentVersion, snapshotSpans);
-            this.ProtectedCurrentSnapshot = this.currentProjectionSnapshot;
+            this.currentProjectionSnapshot = new ProjectionSnapshot(this, base.currentVersion, this.builder, snapshotSpans);
+            this.currentSnapshot = this.currentProjectionSnapshot;
         }
         #endregion
 
@@ -634,7 +640,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                 if (this.projBuffer.literalBuffer == null)
                 {
                     this.projBuffer.literalBuffer = 
-                        projBuffer.textBufferFactory.CreateTextBuffer("", projBuffer.textBufferFactory.InertContentType, readOnly);
+                        projBuffer.textBufferFactory.CreateTextBuffer(string.Empty, projBuffer.textBufferFactory.InertContentType, readOnly);
                     this.insertionPoint = 0;
                 }
                 else if (this.projBuffer.literalBufferRor != null)
@@ -874,6 +880,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             {
                 normalizedChanges = ComputeTextChangesBySpanDiffing(textPosition, deletedSnapSpans, insertedSnapSpans);
             }
+
             SetCurrentVersionAndSnapshot(normalizedChanges);
 
             ProjectionSourceSpansChangedEventArgs args = null;
@@ -937,7 +944,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             List<TextChange> changes = new List<TextChange>();
             if (oldText.Length > 0 || newText.Length > 0)
             {
-                changes.Add(new TextChange(textPosition, oldText.ToString(), newText.ToString(), this.currentProjectionSnapshot));
+                changes.Add(TextChange.Create(textPosition, oldText.ToString(), newText.ToString(), this.currentProjectionSnapshot));
             }
 
             return NormalizedTextChangeCollection.Create(changes, differenceOptions, this.textDifferencingService);
@@ -1133,14 +1140,17 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             this.sourceBufferSet.FinishTransaction(out addedBuffers, out removedBuffers);
 
             INormalizedTextChangeCollection normalizedChanges = NormalizedTextChangeCollection.Create(changes);
-            this.currentVersion = this.currentVersion.CreateNext(normalizedChanges);
+
+            this.currentVersion = this.currentVersion.CreateNext(normalizedChanges, newLength: -1, reiteratedVersionNumber: -1);
+            this.builder = this.ApplyChangesToStringRebuilder(normalizedChanges, this.builder);
+
             if (beforeBaseSnapshot)
             {
                 this.currentProjectionSnapshot = TakeStaticSnapshot(newSourceSpans);
             }
             else
             {
-                this.ProtectedCurrentSnapshot = TakeSnapshot();
+                this.currentSnapshot = TakeSnapshot();
             }
 
             ProjectionSourceSpansChangedEventArgs args =
@@ -1247,7 +1257,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                 var pair = pendingSourceChanges.Find((p) => (p.Item1 == sourceBuffer));
                 if (pair == null)
                 {
-                    bufferChanges = new List<TextChange>(1) { new TextChange(int.MaxValue, "", "", LineBreakBoundaryConditions.None) };
+                    bufferChanges = new List<TextChange>(1) { new TextChange(int.MaxValue, StringRebuilder.Empty, StringRebuilder.Empty, LineBreakBoundaryConditions.None) };
                     pendingSourceChanges.Add(new Tuple<ITextBuffer, List<TextChange>>(sourceBuffer, bufferChanges));
                 }
                 else
@@ -1282,8 +1292,8 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
         }
 
         private static void CorrectSpanAdjustments(List<TextChange> ordinaryChanges,
-                                                   SortedDictionary<int, SpanAdjustment> spanPreAdjustments,
-                                                   SortedDictionary<int, SpanAdjustment> spanPostAdjustments)
+                                           SortedDictionary<int, SpanAdjustment> spanPreAdjustments,
+                                           SortedDictionary<int, SpanAdjustment> spanPostAdjustments)
         {
             TextChange[] sortedOrdinary = TextUtilities.StableSort(ordinaryChanges, (left, right) => (left.OldPosition - right.OldPosition));
 
@@ -1293,9 +1303,9 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
 
             int count = ordinary.Count + preAdjustments.Count + postAdjustments.Count;
 
-            TextChange sentinel = new TextChange(int.MaxValue, "", "", LineBreakBoundaryConditions.None);
+            TextChange sentinel = new TextChange(int.MaxValue, StringRebuilder.Empty, StringRebuilder.Empty, LineBreakBoundaryConditions.None);
             ordinary.Add(sentinel);
-            preAdjustments.Add(new Tuple<TextChange, int>(sentinel,0));
+            preAdjustments.Add(new Tuple<TextChange, int>(sentinel, 0));
             postAdjustments.Add(new Tuple<TextChange, int>(sentinel, 0));
 
             int ordDelta = 0;
@@ -1310,116 +1320,48 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             int prePos = preAdjustments[0].Item1.OldPosition;
             int postPos = postAdjustments[0].Item1.OldPosition;
 
-            int c = 0;
-            while (c < count)
+            for (int c = 0; (c < count); ++c)
             {
-                if (ordPos < prePos && ordPos < postPos)
+                if (postPos <= prePos && postPos <= ordPos)
                 {
-                    // ord is minimum
-                    ordinary[ordIndex].OldPosition += preDelta;
-                    ordinary[ordIndex].NewPosition = ordinary[ordIndex].OldPosition;
-                    ordDelta += ordinary[ordIndex].Delta;
-                    ordPos = ordinary[++ordIndex].OldPosition;
-                    c++;
-                }
-                else if (prePos < ordPos && prePos < postPos)
-                {
-                    // pre is minimum
-                    preAdjustments[preIndex].Item1.OldPosition += preDelta - preAdjustments[preIndex].Item2;
-                    preAdjustments[preIndex].Item1.NewPosition = preAdjustments[preIndex].Item1.OldPosition;
-                    preDelta += preAdjustments[preIndex].Item1.Delta;
-                    prePos = preAdjustments[++preIndex].Item1.OldPosition;
-                    c++;
-                }
-                else if (postPos < prePos && postPos < ordPos)
-                {
-                    // post is minimum
+                    // post either comes first or is tied. Advance it one step since its adjustments won't affect any of the other adjustments
+                    // (they don't depend on postDelta).
                     postAdjustments[postIndex].Item1.OldPosition += preDelta + ordDelta + postDelta - postAdjustments[postIndex].Item2;
                     postAdjustments[postIndex].Item1.NewPosition = postAdjustments[postIndex].Item1.OldPosition;
                     postDelta += postAdjustments[postIndex].Item1.Delta;
                     postPos = postAdjustments[++postIndex].Item1.OldPosition;
-                    c++;
                 }
-                else if (prePos == ordPos && ordPos == postPos)
+                else if (ordPos <= prePos)
                 {
-                    // all three are equal
-                    // apply pre and ord deltas; these don't affect each other
+                    // The ordinary change comes before or is tied with pre and comes before post. Advance it one step since its adjustment won't
+                    // affect pre's adjustment.
 
-                    preAdjustments[preIndex].Item1.OldPosition += preDelta - preAdjustments[preIndex].Item2;
-                    preAdjustments[preIndex].Item1.NewPosition = preAdjustments[preIndex].Item1.OldPosition;
+                    // postPos comes after ordPos or prePos.
+                    // if ordPos is before prePos, then it must also come before postPos.
+                    Debug.Assert(ordPos < postPos);
 
                     ordinary[ordIndex].OldPosition += preDelta;
                     ordinary[ordIndex].NewPosition = ordinary[ordIndex].OldPosition;
-
-                    postAdjustments[postIndex].Item1.OldPosition += preDelta + ordDelta + postDelta - postAdjustments[postIndex].Item2;
-                    postAdjustments[postIndex].Item1.NewPosition = postAdjustments[postIndex].Item1.OldPosition;
-
-                    preDelta += preAdjustments[preIndex].Item1.Delta;
-                    prePos = preAdjustments[++preIndex].Item1.OldPosition;
-
                     ordDelta += ordinary[ordIndex].Delta;
                     ordPos = ordinary[++ordIndex].OldPosition;
-
-                    postDelta += postAdjustments[postIndex].Item1.Delta;
-                    postPos = postAdjustments[++postIndex].Item1.OldPosition;
-
-                    c += 3;
-                }
-                else if (ordPos == prePos)
-                {
-                    preAdjustments[preIndex].Item1.OldPosition += preDelta - preAdjustments[preIndex].Item2;
-                    preAdjustments[preIndex].Item1.NewPosition = preAdjustments[preIndex].Item1.OldPosition;
-
-                    ordinary[ordIndex].OldPosition += preDelta;
-                    ordinary[ordIndex].NewPosition = ordinary[ordIndex].OldPosition;
-
-                    preDelta += preAdjustments[preIndex].Item1.Delta;
-                    prePos = preAdjustments[++preIndex].Item1.OldPosition;
-
-                    ordDelta += ordinary[ordIndex].Delta;
-                    ordPos = ordinary[++ordIndex].OldPosition;
-
-                    c += 2;
-                }
-                else if (prePos == postPos)
-                {
-                    preAdjustments[preIndex].Item1.OldPosition += preDelta - preAdjustments[preIndex].Item2;
-                    preAdjustments[preIndex].Item1.NewPosition = preAdjustments[preIndex].Item1.OldPosition;
-
-                    postAdjustments[postIndex].Item1.OldPosition += preDelta + ordDelta + postDelta - postAdjustments[postIndex].Item2;
-                    postAdjustments[postIndex].Item1.NewPosition = postAdjustments[postIndex].Item1.OldPosition;
-
-                    preDelta += preAdjustments[preIndex].Item1.Delta;
-                    prePos = preAdjustments[++preIndex].Item1.OldPosition;
-
-                    postDelta += postAdjustments[postIndex].Item1.Delta;
-                    postPos = postAdjustments[++postIndex].Item1.OldPosition;
-
-                    c += 2;
                 }
                 else
                 {
-                    Debug.Assert(ordPos == postPos);
+                    Debug.Assert(prePos < ordPos);
+                    Debug.Assert(prePos < postPos);
 
-                    ordinary[ordIndex].OldPosition += preDelta;
-                    ordinary[ordIndex].NewPosition = ordinary[ordIndex].OldPosition;
-
-                    postAdjustments[postIndex].Item1.OldPosition += preDelta + ordDelta + postDelta - postAdjustments[postIndex].Item2;
-                    postAdjustments[postIndex].Item1.NewPosition = postAdjustments[postIndex].Item1.OldPosition;
-
-                    ordDelta += ordinary[ordIndex].Delta;
-                    ordPos = ordinary[++ordIndex].OldPosition;
-
-                    postDelta += postAdjustments[postIndex].Item1.Delta;
-                    postPos = postAdjustments[++postIndex].Item1.OldPosition;
-
-                    c += 2;
+                    preAdjustments[preIndex].Item1.OldPosition += preDelta - preAdjustments[preIndex].Item2;
+                    preAdjustments[preIndex].Item1.NewPosition = preAdjustments[preIndex].Item1.OldPosition;
+                    preDelta += preAdjustments[preIndex].Item1.Delta;
+                    prePos = preAdjustments[++preIndex].Item1.OldPosition;
                 }
             }
+
             Debug.Assert(ordIndex == ordinary.Count - 1);
             Debug.Assert(preIndex == preAdjustments.Count - 1);
             Debug.Assert(postIndex == postAdjustments.Count - 1);
         }
+
 
         /// <summary>
         /// Figure out how a source buffer change affects the projection buffer.
@@ -1476,8 +1418,8 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
 
                         Debug.Assert(projectedPosition >= 0 && projectedPosition <= priorSnapshot.Length);
 
-                        string deletedText = change.OldText.Substring(Math.Max(priorRawSpan.Start.Position - deletionSpan.Start, 0), deletedHere.Value.Length);
-                        string insertedText = string.Empty;  
+                        StringRebuilder deletedText = TextChange.ChangeOldSubText(change, Math.Max(priorRawSpan.Start.Position - deletionSpan.Start, 0), deletedHere.Value.Length);
+                        StringRebuilder insertedText = StringRebuilder.Empty;
 
                         SnapshotSpan adjustedPriorRawSpan = new SnapshotSpan(priorRawSpan.Snapshot, priorRawSpan.Start, priorRawSpan.Length - deletedText.Length);
 
@@ -1493,9 +1435,9 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                                 SpanAdjustment adjust = GetAdjustment(spanPreAdjustments, spanPosition);
                                 // Create the text change that will be induced by the span adjustment
                                 Debug.Assert(adjust.LeadingChange == null); // there can only be one leading change for a particular span
-                                adjust.LeadingChange = new TextChange(projectedPosition, deletedText, "", this.currentProjectionSnapshot);
+                                adjust.LeadingChange = TextChange.Create(projectedPosition, deletedText, string.Empty, this.currentProjectionSnapshot);
                                 Debug.Assert(adjust.LeadingChange.OldEnd <= priorSnapshot.Length);
-                                deletedText = string.Empty;
+                                deletedText = StringRebuilder.Empty;
                             }
                             else if ((sourceSpan.TrackingMode != SpanTrackingMode.EdgePositive) && (deletedHere.Value.End == priorRawSpan.End))
                             {
@@ -1503,9 +1445,9 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                                 SpanAdjustment adjust = GetAdjustment(spanPreAdjustments, spanPosition);
                                 // Create the text change that will be induced by the span adjustment
                                 Debug.Assert(adjust.TrailingChange == null);
-                                adjust.TrailingChange = new TextChange(projectedPosition, deletedText, "", this.currentProjectionSnapshot);
+                                adjust.TrailingChange = TextChange.Create(projectedPosition, deletedText, string.Empty, this.currentProjectionSnapshot);
                                 Debug.Assert(adjust.TrailingChange.OldEnd <= priorSnapshot.Length);
-                                deletedText = string.Empty;
+                                deletedText = StringRebuilder.Empty;
                             }
                         }
 
@@ -1523,7 +1465,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
 
                         if (deletedText.Length > 0 || insertedText.Length > 0)
                         {
-                            TextChange interpretedChange = new TextChange(projectedPosition, deletedText, insertedText, this.currentProjectionSnapshot);
+                            TextChange interpretedChange = TextChange.Create(projectedPosition, deletedText, insertedText, this.currentProjectionSnapshot);
                             Debug.Assert(interpretedChange.OldEnd <= priorSnapshot.Length);
                             projectedChanges.Add(interpretedChange);
                         }
@@ -1535,13 +1477,13 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                         // left of the current source span may actually end up being interesting, in which case it would be at the beginning of the span.
                         // If those conditions don't obtain, InsertionLiesInSpan will return false and nobody will be the wiser.
                         int hack = spanPostAdjustments == null ? 0 : spanPostAdjustments.Count;
-                        string insertedText = InsertionLiesInSpan(afterSourceSnapshot, projectedPosition, spanPosition, priorRawSpan, deletionSpan,
+                        StringRebuilder insertedText = InsertionLiesInSpan(afterSourceSnapshot, projectedPosition, spanPosition, priorRawSpan, deletionSpan,
                                                                   sourceChangePosition, mode, change, urPoints, spanPostAdjustments, accumulatedDelta);
                         if (insertedText.Length > 0)
                         {
                             // a pure insertion into the source span
 
-                            TextChange interpretedChange = new TextChange(projectedPosition, "", insertedText, this.currentProjectionSnapshot);
+                            TextChange interpretedChange = TextChange.Create(projectedPosition, string.Empty, insertedText, this.currentProjectionSnapshot);
                             projectedChanges.Add(interpretedChange);
                         }
                         if (spanPostAdjustments != null && spanPostAdjustments.Count != hack)   // ur points should have eliminated the need for the hack
@@ -1555,7 +1497,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             }
         }
 
-        private string InsertionLiesInSpan(ITextSnapshot afterSourceSnapshot,
+        private StringRebuilder InsertionLiesInSpan(ITextSnapshot afterSourceSnapshot,
                                            int projectedPosition,
                                            int spanPosition, 
                                            SnapshotSpan rawSpan, 
@@ -1583,7 +1525,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                 }
                 else
                 {
-                    return contains || sourcePosition == rawSpan.End ? incomingChange.NewText : string.Empty;
+                    return contains || sourcePosition == rawSpan.End ? TextChange.NewStringRebuilder(incomingChange) : StringRebuilder.Empty;
                 }
             }
             else
@@ -1605,7 +1547,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                     {
                         included = contains && sourcePosition != rawSpan.Start;
                     }
-                    return included ? incomingChange.NewText : string.Empty;
+                    return included ? TextChange.NewStringRebuilder(incomingChange) : StringRebuilder.Empty;
                 }
                 else
                 {
@@ -1625,9 +1567,9 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                             SpanAdjustment adjust = GetAdjustment(spanAdjustments, spanPosition);
                             // Create the text change that will be induced by the span adjustment
                             Debug.Assert(adjust.LeadingChange == null);
-                            adjust.LeadingChange = new TextChange(projectedPosition, "", incomingChange.NewText, this.currentProjectionSnapshot);
+                            adjust.LeadingChange = TextChange.Create(projectedPosition, StringRebuilder.Empty, TextChange.NewStringRebuilder(incomingChange), this.currentProjectionSnapshot);
                         }
-                        return string.Empty;   // this insertion either already happened or happens on a subsequent transaction, not this one
+                        return StringRebuilder.Empty;   // this insertion either already happened or happens on a subsequent transaction, not this one
                     }
                     else if (sourcePosition == rawSpan.End && (mode != SpanTrackingMode.EdgePositive))
                     {
@@ -1645,16 +1587,16 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                             SpanAdjustment adjust = GetAdjustment(spanAdjustments, spanPosition);
                             // Create the text change that will be induced by the span adjustment
                             Debug.Assert(adjust.TrailingChange == null);
-                            adjust.TrailingChange = new TextChange(projectedPosition, "", incomingChange.NewText, this.currentProjectionSnapshot);
+                            adjust.TrailingChange = TextChange.Create(projectedPosition, StringRebuilder.Empty, TextChange.NewStringRebuilder(incomingChange), this.currentProjectionSnapshot);
                         }
-                        return string.Empty;   // this insertion either already happened or happens on a subsequent transaction, not this one
+                        return StringRebuilder.Empty;   // this insertion either already happened or happens on a subsequent transaction, not this one
                     }
-                    return (contains || (mode == SpanTrackingMode.EdgePositive && sourcePosition == rawSpan.End)) ? incomingChange.NewText : string.Empty;
+                    return (contains || (mode == SpanTrackingMode.EdgePositive && sourcePosition == rawSpan.End)) ? TextChange.NewStringRebuilder(incomingChange) : StringRebuilder.Empty;
                 }
             }
         }
 
-        private string InsertionLiesInCustomSpan(ITextSnapshot afterSourceSnapshot, 
+        private StringRebuilder InsertionLiesInCustomSpan(ITextSnapshot afterSourceSnapshot, 
                                                  int spanPosition, 
                                                  ITextChange incomingChange,
                                                  HashSet<SnapshotPoint> urPoints, 
@@ -1666,7 +1608,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
 
             Span newSpan = new Span(incomingChange.NewPosition + accumulatedDelta, incomingChange.NewLength);
             Span? over = newSpan.Overlap(afterSpan);
-            return over.HasValue ? afterSourceSnapshot.GetText(over.Value) : string.Empty;
+            return over.HasValue ? BufferFactoryService.StringRebuilderFromSnapshotAndSpan(afterSourceSnapshot, over.Value) : StringRebuilder.Empty;
 
             
             //if (futureSpan.Contains(renormalizedSourcePosition))
@@ -1699,7 +1641,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             //}
         }
 
-        private static string InsertionLiesInPermissiveInclusiveSpan(ITextSnapshot afterSourceSnapshot,
+        private static StringRebuilder InsertionLiesInPermissiveInclusiveSpan(ITextSnapshot afterSourceSnapshot,
                                                                      SnapshotSpan rawSpan,
                                                                      Span deletionSpan,
                                                                      int sourcePosition,
@@ -1720,7 +1662,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                 {
                     Debug.WriteLine("UR-Point [inclusive:start]" + urPoint.Value.ToString());
                 }
-                return incomingChange.NewText;
+                return TextChange.NewStringRebuilder(incomingChange);
             }
             else if (sourcePosition == rawSpan.End)
             {
@@ -1734,11 +1676,11 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                 {
                     Debug.WriteLine("UR-Point [inclusive:end]" + urPoint.Value.ToString());
                 }
-                return incomingChange.NewText;
+                return TextChange.NewStringRebuilder(incomingChange);
             }
             else
             {
-                return rawSpan.Contains(sourcePosition) ? incomingChange.NewText : string.Empty;
+                return rawSpan.Contains(sourcePosition) ? TextChange.NewStringRebuilder(incomingChange) : StringRebuilder.Empty;
             }
         }
 
@@ -1829,7 +1771,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                             int insertionSize = Math.Min(insertionSizes[i], change.NewLength - pos);
                             if (insertionSize > 0)
                             {
-                                ReplaceInSource(sourceReplacementSpans[i], change.NewText.Substring(pos, insertionSize), pos + change.MasterChangeOffset);
+                                ReplaceInSource(sourceReplacementSpans[i], TextChange.ChangeNewSubstring(change, pos, insertionSize), pos + change.MasterChangeOffset);
                                 pos += insertionSize;
                             }
                             else if (sourceReplacementSpans[i].Length > 0)
@@ -1886,7 +1828,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                             int size = Math.Min(insertionSizes[i], change.NewLength - pos);
                             if (size > 0)
                             {
-                                InsertInSource(sourceInsertionPoints[i], change.NewText.Substring(pos, size), pos + change.MasterChangeOffset);
+                                InsertInSource(sourceInsertionPoints[i], change._newText.GetText(new Span(pos, size)), pos + change.MasterChangeOffset);
                                 pos += size;
                                 if (pos == change.NewLength)
                                 {
@@ -1924,17 +1866,31 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
 
         private ProjectionSnapshot MakeSnapshot(List<SnapshotSpan> newSourceSpans)
         {
+            return new ProjectionSnapshot(this, this.currentVersion, this.builder, newSourceSpans);
+        }
+
+        protected override StringRebuilder GetDoppelgangerBuilder()
+        {
             ITextBuffer doppelBottom;
             if (Properties.TryGetProperty<ITextBuffer>("IdentityMapping", out doppelBottom))
             {
-                return new ProjectionSnapshotDoppelganger(this, this.currentVersion, newSourceSpans, doppelBottom.CurrentSnapshot);
+                var snapshot = doppelBottom.CurrentSnapshot;
+                return BufferFactoryService.StringRebuilderFromSnapshotAndSpan(snapshot, new Span(0, snapshot.Length));
             }
-            else
-            {
-                return new ProjectionSnapshot(this, this.currentVersion, newSourceSpans);
-            }
-        }
 
+            if (this.sourceSpans.Count == 1)
+            {
+                var sourceSpan = this.sourceSpans[0];
+                var source = sourceSpan.GetSpan(sourceSpan.TextBuffer.CurrentSnapshot);
+                if ((source.Length == this.currentVersion.Length) && (source.Snapshot is BaseSnapshot))
+                {
+                    // We're mapped to a single span that is equal to the entire contents the source buffer.
+                    return BufferFactoryService.StringRebuilderFromSnapshotSpan(source);
+                }
+            }
+
+            return null;
+        }
 
         public override IProjectionSnapshot CurrentSnapshot
         {

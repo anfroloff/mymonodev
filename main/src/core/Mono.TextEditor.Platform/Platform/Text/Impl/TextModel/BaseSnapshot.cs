@@ -9,21 +9,28 @@ namespace Microsoft.VisualStudio.Text.Implementation
 {
     using System;
     using System.Collections.Generic;
-
+    using System.IO;
+    using System.Text;
     using Microsoft.VisualStudio.Utilities;
 
     /// <summary>
     /// Base class for all varieties of Text Snapshots.
     /// </summary>
-    internal abstract class BaseSnapshot : ITextSnapshot
+    internal abstract class BaseSnapshot : ITextSnapshot, ITextSnapshot2
     {
         #region State and Construction
-        protected readonly ITextVersion version;
+        protected readonly ITextVersion2 version;
         private readonly IContentType contentType;
 
-        protected BaseSnapshot(ITextVersion version)
+        internal readonly StringRebuilder Content;
+        internal readonly ITextImage cachingContent;
+
+        protected BaseSnapshot(ITextVersion2 version, StringRebuilder content)
         {
             this.version = version;
+            this.Content = content;
+            this.cachingContent = CachingTextImage.Create(this.Content, version.ImageVersion);
+
             // we must extract the content type here, because the content type of the text buffer may change later.
             this.contentType = version.TextBuffer.ContentType;
         }
@@ -89,21 +96,92 @@ namespace Microsoft.VisualStudio.Text.Implementation
         #endregion
         #endregion
 
+        #region ITextSnapshot2 implementations
+        public void SaveToFile(string filePath, bool replaceFile, Encoding encoding)
+        {
+            FileUtilities.SaveSnapshot(this, replaceFile ? FileMode.Create : FileMode.CreateNew, encoding, filePath);
+        }
+        #endregion
+
         #region ITextSnapshot abstract methods
         protected abstract ITextBuffer TextBufferHelper { get; }
-        public abstract int Length { get; }
-        public abstract int LineCount { get; }
-        public abstract string GetText(Span span);
-        public abstract char[] ToCharArray(int startIndex, int length);
-        public abstract void CopyTo(int sourceIndex, char[] destination, int destinationIndex, int count);
-        public abstract char this[int position] { get; }
-        public abstract ITextSnapshotLine GetLineFromLineNumber(int lineNumber);
-        public abstract ITextSnapshotLine GetLineFromPosition(int position);
-        public abstract int GetLineNumberFromPosition(int position);
-        public abstract IEnumerable<ITextSnapshotLine> Lines { get; }
-        public abstract void Write(System.IO.TextWriter writer, Span span);
-        public abstract void Write(System.IO.TextWriter writer);
+
+        public int Length
+        {
+            get { return this.cachingContent.Length; }
+        }
+
+        public int LineCount
+        {
+            get { return this.cachingContent.LineCount; }
+        }
+
+        public string GetText(Span span)
+        {
+            return this.cachingContent.GetText(span);
+        }
+
+        public void CopyTo(int sourceIndex, char[] destination, int destinationIndex, int count)
+        {
+            this.cachingContent.CopyTo(sourceIndex, destination, destinationIndex, count);
+        }
+
+        public char[] ToCharArray(int startIndex, int length)
+        {
+            return this.cachingContent.ToCharArray(startIndex, length);
+        }
+
+        public char this[int position]
+        {
+            get
+            {
+                return this.cachingContent[position];
+            }
+        }
+
+        public ITextSnapshotLine GetLineFromLineNumber(int lineNumber)
+        {
+            TextImageLine lineSpan = this.cachingContent.GetLineFromLineNumber(lineNumber);
+
+            return new TextSnapshotLine(this, lineSpan);
+        }
+
+        public ITextSnapshotLine GetLineFromPosition(int position)
+        {
+            int lineNumber = this.cachingContent.GetLineNumberFromPosition(position);
+            return this.GetLineFromLineNumber(lineNumber);
+        }
+
+        public int GetLineNumberFromPosition(int position)
+        {
+            return this.cachingContent.GetLineNumberFromPosition(position);
+        }
+
+        public IEnumerable<ITextSnapshotLine> Lines
+        {
+            get
+            {
+                // this is a naive implementation
+                int lineCount = this.cachingContent.LineCount;
+                for (int line = 0; line < lineCount; ++line)
+                {
+                    yield return GetLineFromLineNumber(line);
+                }
+            }
+        }
+
+        public void Write(System.IO.TextWriter writer)
+        {
+            this.cachingContent.Write(writer, new Span(0, this.cachingContent.Length));
+        }
+
+        public void Write(System.IO.TextWriter writer, Span span)
+        {
+            this.cachingContent.Write(writer, span);
+        }
         #endregion
+
+        public ITextImage TextImage => this.cachingContent;
 
         public override string ToString()
         {

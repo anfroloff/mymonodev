@@ -50,13 +50,11 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
 
         private int[] cumulativeLineBreakCounts;
         private int[] cumulativeLengths;
-
-        private const int LineScanThreshold = 64;
         #endregion
 
         #region Construction
-        public ProjectionSnapshot(ProjectionBuffer projectionBuffer, ITextVersion version, IList<SnapshotSpan> sourceSpans)
-            : base(version)
+        public ProjectionSnapshot(ProjectionBuffer projectionBuffer, ITextVersion2 version, StringRebuilder content, IList<SnapshotSpan> sourceSpans)
+            : base(version, content)
         {
             this.projectionBuffer = projectionBuffer;
             this.sourceSpans = new ReadOnlyCollection<SnapshotSpan>(sourceSpans);
@@ -65,8 +63,6 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             this.cumulativeLineBreakCounts = new int[sourceSpans.Count + 1];
 
             this.sourceSnapshotMap = new Dictionary<ITextSnapshot, List<InvertedSource>>();
-            char[] lineText = null;
-
             for (int s = 0; s < sourceSpans.Count; ++s)
             {
                 SnapshotSpan sourceSpan = sourceSpans[s];
@@ -78,20 +74,8 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                 // which means we should be able to reuse the line break count from the previous
                 // projection snapshot.
 
-                int lineBreakCount;
-                if (sourceSpan.Length < LineScanThreshold)
-                {
-                    if (lineText == null)
-                    {
-                        lineText = new char[LineScanThreshold-1];
-                    }
-                    sourceSpan.Snapshot.CopyTo(sourceSpan.Start, lineText, 0, sourceSpan.Length);
-                    lineBreakCount = TextUtilities.ScanForLineCount(lineText, 0, sourceSpan.Length);
-                }
-                else
-                {
-                    lineBreakCount = sourceSpan.Snapshot.GetLineNumberFromPosition(sourceSpan.End) - sourceSpan.Snapshot.GetLineNumberFromPosition(sourceSpan.Start);
-                }
+                int lineBreakCount = sourceSpan.Snapshot.GetLineNumberFromPosition(sourceSpan.End) - sourceSpan.Snapshot.GetLineNumberFromPosition(sourceSpan.Start);
+
                 // todo: incorrect when span ends with \r and following begins with \n
                 this.totalLineCount += lineBreakCount;
 
@@ -648,195 +632,6 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
 
                 return new ReadOnlyCollection<SnapshotPoint>(sourceInsertionPoints);
             }
-        }
-        #endregion
-
-        #region Line Methods
-        public override ITextSnapshotLine GetLineFromLineNumber(int lineNumber)
-        {
-            if (lineNumber < 0 || lineNumber >= this.totalLineCount)
-            {
-                throw new ArgumentOutOfRangeException("lineNumber");
-            }
-
-            int rover = FindLowestSpanIndexOfLineNumber(lineNumber);
-            if (rover < 0)
-            {
-                Debug.Assert(this.sourceSpans.Count == 0);
-                return new TextSnapshotLine(this, new LineSpan());
-            }
-
-            SnapshotSpan sourceSpan = this.sourceSpans[rover];
-            int cumulativeLineBreakCount = this.cumulativeLineBreakCounts[rover];
-            int cumulativeLength = this.cumulativeLengths[rover];
-
-            // The line starts in sourceSpan. Find its beginning.
-            int lineDelta = lineNumber - cumulativeLineBreakCount;
-            int fragmentFirstLineNumber = sourceSpan.Snapshot.GetLineNumberFromPosition(sourceSpan.Start);
-            ITextSnapshotLine line = sourceSpan.Snapshot.GetLineFromLineNumber(fragmentFirstLineNumber + lineDelta);
-            int unprojectedLinePrefix = Math.Max(0, sourceSpan.Start - line.Start);
-            int lineStart = cumulativeLength + Math.Max(0, line.Start - sourceSpan.Start);
-            if (line.EndIncludingLineBreak <= sourceSpan.End && line.LineBreakLength > 0)
-            {
-                // oh good, the whole line lies in this source span.
-                return new TextSnapshotLine
-                            (this,
-                             new LineSpan(lineNumber, new Span(lineStart, line.Length - unprojectedLinePrefix),
-                             line.LineBreakLength));
-            }
-            else
-            {
-                // line extends into the next source span
-                int lineLength = sourceSpan.End - line.Start - unprojectedLinePrefix;
-                int s2 = rover + 1;
-                // include all text from successive spans that don't contain line breaks
-                while ((s2 < this.sourceSpans.Count) && (this.cumulativeLineBreakCounts[s2] == this.cumulativeLineBreakCounts[s2+1]))
-                {
-                    lineLength += this.sourceSpans[s2++].Length;
-                }
-
-                if (s2 == this.sourceSpans.Count)
-                {
-                    // line goes through end of projection buffer, with no line break at end
-                    return new TextSnapshotLine (this, new LineSpan(lineNumber, new Span(lineStart, lineLength), 0));
-                }
-                else
-                {
-                    // line ends with the first line break in sourceSpan[s2]
-                    sourceSpan = this.sourceSpans[s2];
-                    line = sourceSpan.Snapshot.GetLineFromPosition(sourceSpan.Start);
-                    lineLength += line.End - sourceSpan.Start;
-                    return new TextSnapshotLine(this, new LineSpan(lineNumber, new Span(lineStart, lineLength), line.LineBreakLength));
-                }
-            }
-        }
-
-        public override ITextSnapshotLine GetLineFromPosition(int position)
-        {
-            if (position < 0 || position > this.totalLength)
-            {
-                throw new ArgumentOutOfRangeException("position");
-            }
-
-            if (this.sourceSpans.Count == 0)
-            {
-                Debug.Assert(position == 0);
-                return new TextSnapshotLine(this, new LineSpan());
-            }
-
-            int rover = FindHighestSpanIndexOfPosition(position);
-            SnapshotSpan sourceSpan = this.sourceSpans[rover];
-            int cumulativeLength = this.cumulativeLengths[rover];
-            int cumulativeLineBreaks = this.cumulativeLineBreakCounts[rover];
-
-            // position lies in sourceSpan (or at its end)
-            int sourcePosition = sourceSpan.Start + (position - cumulativeLength);
-            ITextSnapshotLine sourceLine = sourceSpan.Snapshot.GetLineFromPosition(sourcePosition);
-
-            // Calculate projected line number. Could possibly tune to avoid the expensive call
-            int lineNumber = cumulativeLineBreaks + (sourceLine.LineNumber - sourceSpan.Snapshot.GetLineNumberFromPosition(sourceSpan.Start));
-
-            int lineStart = cumulativeLength;
-            int lineEnd;
-            int lineBreakLength;
-
-            if (sourceLine.Start > sourceSpan.Start)
-            {
-                // The start of the projected line is in this source span. If sourceLine.Start == sourceSpan.Start, the
-                // start of the line is governed by line breaks in the previous source span.
-                lineStart += (sourceLine.Start - sourceSpan.Start);
-            }
-            else
-            {
-                // Work backwards to find start of line. Skip preceding source spans that have no line breaks.
-                int s0 = rover - 1;
-                // Skip preceding source spans that have no line breaks.
-                while (s0 >= 0 && this.cumulativeLineBreakCounts[s0] == this.cumulativeLineBreakCounts[s0+1])
-                {
-                    lineStart -= this.sourceSpans[s0--].Length;
-                }
-
-                // if s0 gets to -1 then the line starts at position 0
-                Debug.Assert(s0 >= 0 || lineStart == 0);
-
-                if (s0 >= 0)
-                {
-                    // line starts after the last line break in sourceSpan[s0]
-                    SnapshotSpan prevSourceSpan = this.sourceSpans[s0];
-                    // we know the source span has at least one character since it has at least one line break,
-                    // so it is safe to get the line from sourceSpan.End - 1
-                    ITextSnapshotLine prevSourceLine = prevSourceSpan.Snapshot.GetLineFromPosition(prevSourceSpan.End - 1);
-
-                    int startOfLastLineInSourceSpan;
-                    if (prevSourceLine.EndIncludingLineBreak <= prevSourceSpan.End  && prevSourceLine.LineBreakLength > 0)
-                    {
-                        // there are some non-linebreak characters at the end of the source span
-                        startOfLastLineInSourceSpan = prevSourceLine.EndIncludingLineBreak;
-                    }
-                    else
-                    {
-                        // the source span ends with a line break
-                        startOfLastLineInSourceSpan = prevSourceLine.Start;
-                    }
-
-                    lineStart -= (prevSourceSpan.End - startOfLastLineInSourceSpan);
-                }
-            }
-
-            if (sourceLine.EndIncludingLineBreak <= sourceSpan.End && sourceLine.LineBreakLength > 0)
-            {
-                // end of line is definitely in this source span
-                lineEnd = cumulativeLength + (sourceLine.End - sourceSpan.Start);
-                // yet another place where we assume that line break combinations are not broken up by projection
-                lineBreakLength = sourceLine.LineBreakLength;
-            }
-            else
-            {
-                lineEnd = cumulativeLength + sourceSpan.Length;
-                int s2 = rover + 1;
-                // include all text from successive spans that don't contain line breaks
-                while ((s2 < this.sourceSpans.Count) && (this.cumulativeLineBreakCounts[s2] == this.cumulativeLineBreakCounts[s2+1]))
-                {
-                    lineEnd += this.sourceSpans[s2++].Length;
-                }
-
-                if (s2 < this.sourceSpans.Count)
-                {
-                    // line ends with the first line break in sourceSpan[s2]
-                    SnapshotSpan nextSourceSpan = this.sourceSpans[s2];
-                    ITextSnapshotLine nextSourceLine = nextSourceSpan.Snapshot.GetLineFromPosition(nextSourceSpan.Start);
-                    lineEnd += nextSourceLine.End - nextSourceSpan.Start;
-                    // yet another place where we assume that line break combinations are not broken up by projection
-                    lineBreakLength = nextSourceLine.LineBreakLength;
-                }
-                else
-                {
-                    // if s2 == the number of source spans then the line extends to the end of the projection buffer
-                    Debug.Assert(lineEnd == this.totalLength);
-                    lineBreakLength = 0;
-                }
-            }
-            return new TextSnapshotLine(this, new LineSpan(lineNumber, Span.FromBounds(lineStart, lineEnd), lineBreakLength));
-        }
-
-        public override int GetLineNumberFromPosition(int position)
-        {
-            if (position < 0 || position > this.totalLength)
-            {
-                throw new ArgumentOutOfRangeException("position");
-            }
-
-            int rover = FindHighestSpanIndexOfPosition(position);
-            if (rover < 0)
-            {
-                Debug.Assert(this.sourceSpans.Count == 0);
-                return 0;
-            }
-            SnapshotSpan sourceSpan = this.sourceSpans[rover];
-            int sourcePosition = sourceSpan.Start + (position - this.cumulativeLengths[rover]);
-            int lineBreaksInSpan = sourceSpan.Snapshot.GetLineNumberFromPosition(sourcePosition) -
-                                   sourceSpan.Snapshot.GetLineNumberFromPosition(sourceSpan.Start);
-            return this.cumulativeLineBreakCounts[rover] + lineBreaksInSpan;
         }
         #endregion
 

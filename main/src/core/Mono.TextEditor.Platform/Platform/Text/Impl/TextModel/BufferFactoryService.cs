@@ -8,10 +8,13 @@
 namespace Microsoft.VisualStudio.Text.Implementation
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.ComponentModel.Composition;
     using System.Diagnostics;
     using System.IO;
+    using System.IO.MemoryMappedFiles;
+    using System.Text;
     using Microsoft.VisualStudio.Text.Differencing;
     using Microsoft.VisualStudio.Text.Projection;
     using Microsoft.VisualStudio.Text.Projection.Implementation;
@@ -21,10 +24,13 @@ namespace Microsoft.VisualStudio.Text.Implementation
     /// <summary>
     /// Factory for TextBuffers and ProjectionBuffers.
     /// </summary>
-
+    [Export(typeof(ITextImageFactoryService))]
+    [Export(typeof(ITextImageFactoryService2))]
     [Export(typeof(ITextBufferFactoryService))]
+    [Export(typeof(ITextBufferFactoryService2))]
+    [Export(typeof(ITextBufferFactoryService3))]
     [Export(typeof(IProjectionBufferFactoryService))]
-    internal partial class BufferFactoryService : ITextBufferFactoryService2, IProjectionBufferFactoryService, IInternalTextBufferFactory
+    internal partial class BufferFactoryService : ITextBufferFactoryService2, ITextBufferFactoryService3, IProjectionBufferFactoryService, IInternalTextBufferFactory, ITextImageFactoryService2
     {
         #region Standard Content Type Definitions
         [Export]
@@ -70,7 +76,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
 
         [Import]
         internal GuardedOperations _guardedOperations { get; set; }
-    
+
         #endregion
 
         #region Private state
@@ -136,7 +142,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
 
         public ITextBuffer CreateTextBuffer()
         {
-            return Make(TextContentType, SimpleStringRebuilder.Create(String.Empty), false);
+            return Make(TextContentType, StringRebuilder.Empty, false);
         }
 
         public ITextBuffer CreateTextBuffer(IContentType contentType)
@@ -145,7 +151,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
             {
                 throw new ArgumentNullException("contentType");
             }
-            return Make(contentType, SimpleStringRebuilder.Create(String.Empty), false);
+            return Make(contentType, StringRebuilder.Empty, false);
         }
 
         public ITextBuffer CreateTextBuffer(string text, IContentType contentType)
@@ -165,6 +171,22 @@ namespace Microsoft.VisualStudio.Text.Implementation
             return Make(contentType, content, false);
         }
 
+        public ITextBuffer CreateTextBuffer(ITextImage image, IContentType contentType)
+        {
+            if (image == null)
+            {
+                throw new ArgumentNullException(nameof(image));
+            }
+            if (contentType == null)
+            {
+                throw new ArgumentNullException(nameof(contentType));
+            }
+
+            StringRebuilder content = StringRebuilder.Create(image);
+
+            return Make(contentType, content, false);
+        }
+
         public ITextBuffer CreateTextBuffer(string text, IContentType contentType, bool spurnGroup)
         {
             if (text == null)
@@ -175,7 +197,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
             {
                 throw new ArgumentNullException("contentType");
             }
-            return Make(contentType, SimpleStringRebuilder.Create(text), spurnGroup);
+            return Make(contentType, StringRebuilder.Create(text), spurnGroup);
         }
 
         public ITextBuffer CreateTextBuffer(TextReader reader, IContentType contentType, long length, string traceId)
@@ -193,26 +215,19 @@ namespace Microsoft.VisualStudio.Text.Implementation
                 throw new InvalidOperationException(Strings.FileTooLarge);
             }
 
-            ITextStorageLoader loader;
-            if (length < TextModelOptions.CompressedStorageFileSizeThreshold)
-            {
-                loader = new SimpleTextStorageLoader(reader, (int)length);
-            }
-            else
-            {
-                loader = new CompressedTextStorageLoader(reader, (int)length, traceId);
-            }
-            StringRebuilder content = SimpleStringRebuilder.Create(loader);
+            bool hasConsistentLineEndings;
+            int longestLineLength;
+            StringRebuilder content = TextImageLoader.Load(reader, length, traceId, out hasConsistentLineEndings, out longestLineLength);
 
             ITextBuffer buffer = Make(contentType, content, false);
-            if (!loader.HasConsistentLineEndings)
+            if (!hasConsistentLineEndings)
             {
                 // leave a sign that line endings are inconsistent. This is rather nasty but for now
                 // we don't want to pollute the API with this factoid
                 buffer.Properties.AddProperty("InconsistentLineEndings", true);
             }
             // leave a similar sign about the longest line in the buffer.
-            buffer.Properties.AddProperty("LongestLineLength", loader.LongestLineLength);
+
             return buffer;
         }
 
@@ -221,31 +236,72 @@ namespace Microsoft.VisualStudio.Text.Implementation
             return CreateTextBuffer(reader, contentType, -1, "legacy");
         }
 
+        internal static StringRebuilder StringRebuilderFromSnapshotAndSpan(ITextSnapshot snapshot, Span span)
+        {
+            return AppendStringRebuildersFromSnapshotAndSpan(StringRebuilder.Empty, snapshot, span);
+        }
+
         internal static StringRebuilder StringRebuilderFromSnapshotSpan(SnapshotSpan span)
         {
-            TextSnapshot snapshot = span.Snapshot as TextSnapshot;
-            if (snapshot != null)
-            {
-                return snapshot.Content.Substring(span);
-            }
-
-            IProjectionSnapshot projectionSnapshot = span.Snapshot as IProjectionSnapshot;
-            if (projectionSnapshot != null)
-            {
-                StringRebuilder content = SimpleStringRebuilder.Create(string.Empty);
-
-                foreach (var childSpan in projectionSnapshot.MapToSourceSnapshots(span))
-                {
-                    content = content.Append(StringRebuilderFromSnapshotSpan(childSpan));
-                }
-
-                return content;
-            }
-
-            //The we don't know what to do fallback. This should never be called unless someone provides a new snapshot
-            //implementation.
-            return SimpleStringRebuilder.Create(span.GetText());
+            return StringRebuilderFromSnapshotAndSpan(span.Snapshot, span.Span);
         }
+
+        internal static StringRebuilder StringRebuilderFromSnapshotSpans(IList<SnapshotSpan> sourceSpans, Span selectedSourceSpans)
+        {
+            StringRebuilder content = StringRebuilder.Empty;
+            for (int i = 0; (i < selectedSourceSpans.Length); ++i)
+            {
+                var span = sourceSpans[selectedSourceSpans.Start + i];
+                content = AppendStringRebuildersFromSnapshotAndSpan(content, span.Snapshot, span.Span);
+            }
+
+            return content;
+        }
+
+        internal static StringRebuilder AppendStringRebuildersFromSnapshotAndSpan(StringRebuilder content, ITextSnapshot snapshot, Span span)
+        {
+            var baseSnapshot = snapshot as BaseSnapshot;
+            if (baseSnapshot != null)
+            {
+                content = content.Append(baseSnapshot.Content.GetSubText(span));
+            }
+            else
+            {
+                // The we don't know what to do fallback. This should never be called unless someone provides a new snapshot
+                // implementation.
+                content = content.Append(snapshot.GetText(span));
+            }
+
+            return content;
+        }
+
+        #region ITextImageFactoryService members
+        public ITextImage CreateTextImage(string text)
+        {
+            return CachingTextImage.Create(StringRebuilder.Create(text), null);
+        }
+
+        public ITextImage CreateTextImage(TextReader reader, long length)
+        {
+            bool hasConsistentLineEndings;
+            int longestLineLength;
+
+            return CachingTextImage.Create(TextImageLoader.Load(reader, length, string.Empty, out hasConsistentLineEndings, out longestLineLength), null);
+        }
+
+        public ITextImage CreateTextImage(MemoryMappedFile source)
+        {
+            // Evil implementation (for now) that just reads the entire contents of the MMF.
+            // Eventually to be replaced with something along the lines of a version of the StringRebuilderForCompressedChars that uses the MMF directly.
+            using (var stream = source.CreateViewStream())
+            {
+                using (var reader = new StreamReader(stream, Encoding.Unicode))
+                {
+                    return this.CreateTextImage(reader, -1);
+                }
+            }
+        }
+        #endregion
 
         private TextBuffer Make(IContentType contentType, StringRebuilder content, bool spurnGroup)
         {

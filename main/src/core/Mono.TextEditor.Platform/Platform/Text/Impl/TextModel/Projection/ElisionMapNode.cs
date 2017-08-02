@@ -823,7 +823,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                                                 ITextSnapshot afterSourceSnapshot,
                                                 ITextSnapshot beforeElisionSnapshot,
                                                 int? sourceInsertionPosition,
-                                                ChangeString newText,
+                                                StringRebuilder newText,
                                                 Span? sourceDeletionSpan,
                                                 int absoluteSourceOldPosition,
                                                 int absoluteSourceNewPosition,
@@ -958,7 +958,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                     newExposedLineBreakCount += incrementalLineCount;
                     newSourceLineBreakCount += incrementalLineCount;
 
-                    TextChange change = new TextChange(projectedPosition, ChangeString.EmptyChangeString, newText, boundaryConditions);
+                    TextChange change = new TextChange(projectedPosition, StringRebuilder.Empty, newText, boundaryConditions);
                     projectedChanges.Add(change);
                     outgoingAccumulatedDelta += change.Delta;
                     sourceInsertionPosition = null;
@@ -994,8 +994,8 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                 newSourceSize -= exposedSourceDeletion.Value.Length;
                 int projectedDeletionPosition = projectedPrefixSize + exposedSourceDeletion.Value.Start - LeftTotalHiddenSize();
                 int sourceDeletionSegmentPosition = absoluteSourceOldPosition - accumulatedDelete;
-                ReferenceChangeString exposedDeletionText = 
-                    new ReferenceChangeString(new SnapshotSpan(beforeSourceSnapshot, sourceDeletionSegmentPosition, exposedSourceDeletion.Value.Length));
+                StringRebuilder exposedDeletionText =
+                    BufferFactoryService.StringRebuilderFromSnapshotAndSpan(beforeSourceSnapshot, new Span(sourceDeletionSegmentPosition, exposedSourceDeletion.Value.Length));
 
                 LineBreakBoundaryConditions boundaryConditions;
                 int incrementalLineCount;
@@ -1003,7 +1003,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                 
                 newExposedLineBreakCount += incrementalLineCount;
                 newSourceLineBreakCount += incrementalLineCount;
-                TextChange change = new TextChange(projectedDeletionPosition - incomingAccumulatedDelta, exposedDeletionText, ChangeString.EmptyChangeString, boundaryConditions);
+                TextChange change = new TextChange(projectedDeletionPosition - incomingAccumulatedDelta, exposedDeletionText, StringRebuilder.Empty, boundaryConditions);
                 projectedChanges.Add(change);
                 outgoingAccumulatedDelta += change.Delta;
                 accumulatedDelete += change.Delta;
@@ -1013,8 +1013,8 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             if (hiddenSourceDeletion.HasValue)
             {
                 int sourceDeletionSegmentPosition = absoluteSourceOldPosition - accumulatedDelete;
-                ReferenceChangeString hiddenDeletionText = 
-                    new ReferenceChangeString(new SnapshotSpan(beforeSourceSnapshot, sourceDeletionSegmentPosition, hiddenSourceDeletion.Value.Length));
+                StringRebuilder hiddenDeletionText =
+                    BufferFactoryService.StringRebuilderFromSnapshotAndSpan(beforeSourceSnapshot, new Span(sourceDeletionSegmentPosition, hiddenSourceDeletion.Value.Length));
 
                 LineBreakBoundaryConditions dontCare;
                 int incrementalLineCount;
@@ -1036,7 +1036,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                                                         afterSourceSnapshot       : afterSourceSnapshot, 
                                                         beforeElisionSnapshot     : beforeElisionSnapshot,
                                                         sourceInsertionPosition   : insertionOnRight ? sourceInsertionPosition.Value - leftTotalSourceSize - this.sourceSize : (int?)null,
-                                                        newText                   : insertionOnRight ? newText : ChangeString.EmptyChangeString,
+                                                        newText                   : insertionOnRight ? newText : StringRebuilder.Empty,
                                                         sourceDeletionSpan        : rightSourceDeletionSpan.HasValue
                                                                                         ? new Span(rightSourceDeletionSpan.Value.Start - (leftTotalSourceSize + this.sourceSize),
                                                                                                    rightSourceDeletionSpan.Value.Length)
@@ -1056,10 +1056,10 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
 
         private static void ComputeIncrementalLineCountForHiddenInsertion(ITextSnapshot afterSnapshot,
                                                                           int start,
-                                                                          ChangeString insertedText,
+                                                                          StringRebuilder insertedText,
                                                                           out int incrementalLineCount)
         {
-            int lineCount = insertedText.ComputeLineBreakCount();
+            int lineCount = insertedText.LineBreakCount;
             LineBreakBoundaryConditions bc = LineBreakBoundaryConditions.None;
 
             Debug.Assert(start >= 0 && start <= afterSnapshot.Length);
@@ -1068,7 +1068,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             if (start > 0 && afterSnapshot[start - 1] == '\r')
             {
                 bc = bc | LineBreakBoundaryConditions.PrecedingReturn;
-                if (insertedText[0] == '\n')
+                if (insertedText.FirstCharacter == '\n')
                 {
                     // \n was inserted after \r, and we counted it above as a new line, which it isn't.
                     // correct for that.
@@ -1080,7 +1080,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             if (end < afterSnapshot.Length && afterSnapshot[end] == '\n')
             {
                 bc = bc | LineBreakBoundaryConditions.SucceedingNewline;
-                if (insertedText[insertedText.Length - 1] == '\r')
+                if (insertedText.LastCharacter == '\r')
                 {
                     // \r was inserted before \n, and we counted it above as a new line, which it isn't.
                     // correct for that.
@@ -1100,17 +1100,17 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
         /// </summary>
         private static void ComputeIncrementalLineCountForExposedInsertion(char? predecessor,
                                                                            char? successor,
-                                                                           ChangeString insertedText,
+                                                                           StringRebuilder insertedText,
                                                                            out int incrementalLineCount,
                                                                            out LineBreakBoundaryConditions boundaryConditions)
         {
-            int lineCount = insertedText.ComputeLineBreakCount();
+            int lineCount = insertedText.LineBreakCount;
             LineBreakBoundaryConditions bc = LineBreakBoundaryConditions.None;
 
             if (predecessor == '\r')
             {
                 bc = bc | LineBreakBoundaryConditions.PrecedingReturn;
-                if (insertedText[0] == '\n')
+                if (insertedText.FirstCharacter == '\n')
                 {
                     // \n was inserted after \r, and we counted it above as a new line, which it isn't.
                     // correct for that.
@@ -1120,7 +1120,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             if (successor == '\n')
             {
                 bc = bc | LineBreakBoundaryConditions.SucceedingNewline;
-                if (insertedText[insertedText.Length - 1] == '\r')
+                if (insertedText.LastCharacter == '\r')
                 {
                     // \r was inserted before \n, and we counted it above as a new line, which it isn't.
                     // correct for that.
@@ -1141,11 +1141,11 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
         /// </summary>
         private static void ComputeIncrementalLineCountForDeletion(ITextSnapshot beforeSnapshot,
                                                                    Span deletionSpan,
-                                                                   ReferenceChangeString deletedText,
+                                                                   StringRebuilder deletedText,
                                                                    out int incrementalLineCount,
                                                                    out LineBreakBoundaryConditions boundaryConditions)
         {
-            int lineCount = -deletedText.ComputeLineBreakCount();
+            int lineCount = -deletedText.LineBreakCount;
             LineBreakBoundaryConditions bc = LineBreakBoundaryConditions.None;
 
             Debug.Assert(deletionSpan.End <= beforeSnapshot.Length);

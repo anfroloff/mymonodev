@@ -189,7 +189,6 @@ namespace Microsoft.VisualStudio.Text.Implementation
         #endregion
 
         #region State and Construction
-        StringRebuilder builder;
         bool spurnGroup;
 
         public TextBuffer(IContentType contentType, StringRebuilder content, ITextDifferencingService textDifferencingService, GuardedOperations guardedOperations)
@@ -230,24 +229,28 @@ namespace Microsoft.VisualStudio.Text.Implementation
             // points "forward" to the next snapshot and whose deleted text is a reference string that points
             // "backward" to the prior snapshot. This pins both snapshots in memory but that's better than materializing
             // giant strings, and when (?) we have paging text storage, memory requirements will be minimal.
-            TextVersion newVersion = new TextVersion(this, this.currentVersion.VersionNumber + 1, this.currentVersion.VersionNumber + 1, newContent.Length);
             ITextSnapshot oldSnapshot = this.currentSnapshot;
+            StringRebuilder oldContent = BufferFactoryService.StringRebuilderFromSnapshotSpan(new SnapshotSpan(oldSnapshot, 0, oldSnapshot.Length));
+
+            TextChange change = TextChange.Create(oldPosition: 0,
+                                                  oldText: oldContent,
+                                                  newText: newContent,
+                                                  currentSnapshot: oldSnapshot);
+
+
+            TextVersion newVersion = this.currentVersion.CreateNext(changes: null, newLength: newContent.Length, reiteratedVersionNumber: -1);
             TextSnapshot newSnapshot = new TextSnapshot(this, newVersion, newContent);
-            ReferenceChangeString oldText = new ReferenceChangeString(new SnapshotSpan(oldSnapshot, 0, oldSnapshot.Length));
-            ReferenceChangeString newText = new ReferenceChangeString(new SnapshotSpan(newSnapshot, 0, newSnapshot.Length));
-            TextChange change = new TextChange(oldPosition: 0,
-                                               oldText: oldText,
-                                               newText: newText,
-                                               currentSnapshot: oldSnapshot);
-            this.currentVersion.AddNextVersion(NormalizedTextChangeCollection.Create(new FrugalList<TextChange>() { change }, 
-                                                                                     editOptions.ComputeMinimalChange 
-                                                                                         ? (StringDifferenceOptions?)editOptions.DifferenceOptions 
-                                                                                         : null, 
-                                                                                     this.textDifferencingService,
-                                                                                     oldSnapshot, newSnapshot), 
-                                               newVersion);
-            this.builder = newContent;
+
+            this.currentVersion.SetChanges(NormalizedTextChangeCollection.Create(new TextChange[] { change },
+                                                                                 editOptions.ComputeMinimalChange
+                                                                                 ? (StringDifferenceOptions?)editOptions.DifferenceOptions
+                                                                                 : null,
+                                                                                 this.textDifferencingService,
+                                                                                 oldSnapshot, newSnapshot));
+
+
             this.currentVersion = newVersion;
+            this.builder = newContent;
             this.currentSnapshot = newSnapshot;
             return new TextContentChangedEventArgs(oldSnapshot, newSnapshot, editOptions, editTag);
         }
@@ -269,21 +272,9 @@ namespace Microsoft.VisualStudio.Text.Implementation
             INormalizedTextChangeCollection normalizedChanges = NormalizedTextChangeCollection.Create(changes,
                                                                                                       options.ComputeMinimalChange ? (StringDifferenceOptions?)options.DifferenceOptions : null,
                                                                                                       this.textDifferencingService);
-            int changeCount = normalizedChanges.Count;
-            for (int c = 0; c < changeCount; ++c)
-            {
-                ITextChange change = normalizedChanges[c];
-                this.builder = this.builder.Replace(new Span(change.NewPosition, change.OldLength), change.NewText);
-            }
             ITextSnapshot originSnapshot = base.CurrentSnapshot;
-            if (reiteratedVersionNumber.HasValue)
-            {
-                base.SetCurrentVersionAndSnapshot(normalizedChanges, reiteratedVersionNumber.Value);
-            }
-            else
-            {
-                base.SetCurrentVersionAndSnapshot(normalizedChanges);
-            }
+            base.SetCurrentVersionAndSnapshot(normalizedChanges, reiteratedVersionNumber ?? -1);
+
             return new TextContentChangedEventRaiser(originSnapshot, this.CurrentSnapshot, options, editTag);
         }
 

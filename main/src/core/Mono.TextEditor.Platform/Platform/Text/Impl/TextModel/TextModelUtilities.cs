@@ -11,26 +11,18 @@ namespace Microsoft.VisualStudio.Text.Implementation
 
     internal static class TextModelUtilities
     {
-       /// <summary>
-        /// Compute the impact of a change that substitutes <paramref name="newText"/> for <paramref name="oldText"/> in the
-        /// context described by the <paramref name="boundaryConditions"/>.
-        /// </summary>
-        /// <param name="boundaryConditions">Immediate surroundings of the change with respect to compound line breaks.</param>
-        /// <param name="oldText">The replaced text.</param>
-        /// <param name="newText">The newly inserted text.</param>
-        /// <returns></returns>
-        static public int ComputeLineCountDelta(LineBreakBoundaryConditions boundaryConditions, ChangeString oldText, ChangeString newText)
+        static public int ComputeLineCountDelta(LineBreakBoundaryConditions boundaryConditions, StringRebuilder oldText, StringRebuilder newText)
         {
             int delta = 0;
-            delta -= oldText.ComputeLineBreakCount();
-            delta += newText.ComputeLineBreakCount();
+            delta -= oldText.LineBreakCount;
+            delta += newText.LineBreakCount;
             if ((boundaryConditions & LineBreakBoundaryConditions.PrecedingReturn) != 0)
             {
-                if (oldText.Length > 0 && oldText[0] == '\n')
+                if (oldText.FirstCharacter == '\n')
                 {
                     delta++;
                 }
-                if (newText.Length > 0 && newText[0] == '\n')
+                if (newText.FirstCharacter == '\n')
                 {
                     delta--;
                 }
@@ -38,11 +30,11 @@ namespace Microsoft.VisualStudio.Text.Implementation
 
             if ((boundaryConditions & LineBreakBoundaryConditions.SucceedingNewline) != 0)
             {
-                if (oldText.Length > 0 && oldText[oldText.Length - 1] == '\r')
+                if (oldText.LastCharacter == '\r')
                 {
                     delta++;
                 }
-                if (newText.Length > 0 && newText[newText.Length - 1] == '\r')
+                if (newText.LastCharacter == '\r')
                 {
                     delta--;
                 }

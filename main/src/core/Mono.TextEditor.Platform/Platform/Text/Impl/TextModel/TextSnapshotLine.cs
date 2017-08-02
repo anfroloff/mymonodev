@@ -16,15 +16,26 @@ namespace Microsoft.VisualStudio.Text.Implementation
         private readonly int lineBreakLength;
         private readonly SnapshotSpan extent;
 
-        public TextSnapshotLine(ITextSnapshot snapshot, LineSpan lineSpan)
+        public TextSnapshotLine(ITextSnapshot snapshot, int lineNumber, Span extent, int lineBreakLength)
         {
-            this.extent = new SnapshotSpan(snapshot, lineSpan.Extent);
+            this.extent = new SnapshotSpan(snapshot, extent);
 
             //This is inner loop code called only from private methods so we don't need to guard against bad data in released bits.
-            Debug.Assert(lineSpan.EndIncludingLineBreak <= snapshot.Length);
+            Debug.Assert(extent.End + lineBreakLength <= snapshot.Length);
 
-            this.lineNumber = lineSpan.LineNumber;
-            this.lineBreakLength = lineSpan.LineBreakLength;
+            this.lineNumber = lineNumber;
+            this.lineBreakLength = lineBreakLength;
+        }
+
+
+        public TextSnapshotLine(ITextSnapshot snapshot, TextImageLine lineSpan)
+            : this(snapshot, lineSpan.LineNumber, lineSpan.Extent, lineSpan.LineBreakLength)
+        {
+        }
+
+        public TextSnapshotLine(ITextSnapshot snapshot, Tuple<int, Span, int> lineSpan)
+            : this(snapshot, lineSpan.Item1, lineSpan.Item2, lineSpan.Item3)
+        {
         }
 
         /// <summary>

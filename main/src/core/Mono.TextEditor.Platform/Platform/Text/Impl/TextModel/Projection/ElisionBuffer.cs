@@ -131,9 +131,15 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             this.group.AddMember(this);
 
             this.content = new ElisionMap(this.sourceSnapshot, exposedSpans);
+
+            StringRebuilder newBuilder = StringRebuilder.Empty;
+            for (int i = 0; (i < exposedSpans.Count); ++i)
+                newBuilder = newBuilder.Append(BufferFactoryService.StringRebuilderFromSnapshotAndSpan(this.sourceSnapshot, exposedSpans[i]));
+            this.builder = newBuilder;
+
             this.elisionOptions = options;
-            this.currentVersion.InternalLength = content.Length;
-            this.currentElisionSnapshot = new ElisionSnapshot(this, this.sourceSnapshot, base.currentVersion, this.content, (options & ElisionBufferOptions.FillInMappingMode) != 0);
+            this.currentVersion.SetLength(content.Length);
+            this.currentElisionSnapshot = new ElisionSnapshot(this, this.sourceSnapshot, base.currentVersion, this.builder, this.content, (options & ElisionBufferOptions.FillInMappingMode) != 0);
             this.currentSnapshot = this.currentElisionSnapshot;
         }
         #endregion
@@ -324,7 +330,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                                             : Math.Min(insertionSizes[i], change.NewLength - pos);
                             if (size > 0)
                             {
-                                xedit.Insert(sourceInsertionPoints[i].Position, change.NewText.Substring(pos, size));
+                                xedit.Insert(sourceInsertionPoints[i].Position, TextChange.ChangeNewSubstring(change, pos, size));
                                 pos += size;
                                 if (pos == change.NewLength)
                                 {
@@ -384,10 +390,22 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             get { return this.currentElisionSnapshot; }
         }
 
+        protected override StringRebuilder GetDoppelgangerBuilder()
+        {
+            // If there are no elisions, we can simply reference the source snapshot.
+            var sourceSnapshot = this.sourceSnapshot;
+            if ((this.currentVersion.Length == sourceSnapshot.Length) && (sourceSnapshot is BaseSnapshot))
+            {
+                return BufferFactoryService.StringRebuilderFromSnapshotAndSpan(sourceSnapshot, new Span(0, sourceSnapshot.Length));
+            }
+
+            return null;
+        }
+
         protected override BaseSnapshot TakeSnapshot()
         {
-            this.currentElisionSnapshot = 
-                new ElisionSnapshot(this, this.sourceSnapshot, this.currentVersion, this.content, 
+            this.currentElisionSnapshot =
+                new ElisionSnapshot(this, this.sourceSnapshot, this.currentVersion, this.builder, this.content,
                                     (this.elisionOptions & ElisionBufferOptions.FillInMappingMode) != 0);
             return this.currentElisionSnapshot;
         }
@@ -419,7 +437,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
                 // it is not the case that text inserted in one snapshot is deleted in a later snapshot in the series.
 
                 DumpPendingContentChangedEventArgs();
-                List<TextChange> denormalizedChanges = new List<TextChange>() { new TextChange(int.MaxValue, "", "", LineBreakBoundaryConditions.None) };
+                List<TextChange> denormalizedChanges = new List<TextChange>() { new TextChange(int.MaxValue, StringRebuilder.Empty, StringRebuilder.Empty, LineBreakBoundaryConditions.None) };
                 for (int a = 0; a < this.pendingContentChangedEventArgs.Count; ++a)
                 {
                     NormalizedTextChangeCollection.Denormalize(this.pendingContentChangedEventArgs[a].Changes, denormalizedChanges);

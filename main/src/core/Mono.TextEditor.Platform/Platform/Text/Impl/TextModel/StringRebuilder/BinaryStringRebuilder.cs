@@ -12,6 +12,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Collections;
 using System.IO;
+using System.Threading;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Utilities;
 
@@ -19,21 +20,33 @@ namespace Microsoft.VisualStudio.Text.Implementation
 {
     internal sealed class BinaryStringRebuilder : StringRebuilder
     {
+        internal readonly StringRebuilder _left;
+        internal readonly StringRebuilder _right;
+
+#if DEBUG
+        private static int _totalCreated = 0;
+        public static int TotalCreated { get { return _totalCreated; } }
+#endif
+
         #region Private
-        private readonly StringRebuilder _left;
-        private readonly StringRebuilder _right;
+        private static StringRebuilder _crlf = StringRebuilder.Create("\r\n");
 
-        private static StringRebuilder _crlf = SimpleStringRebuilder.Create("\r\n");
-
-        private BinaryStringRebuilder(StringRebuilder left, StringRebuilder right)
-            : base(left.Length + right.Length, left.LineBreakCount + right.LineBreakCount, 1 + Math.Max(left.Depth, right.Depth))
+        // internal for unit tests, a \r\n can't be spanned by left and right
+        internal BinaryStringRebuilder(StringRebuilder left, StringRebuilder right)
+            : base(left.Length + right.Length, left.LineBreakCount + right.LineBreakCount, left.FirstCharacter, right.LastCharacter)
         {
             Debug.Assert(left.Length > 0);
             Debug.Assert(right.Length > 0);
             Debug.Assert(Math.Abs(left.Depth - right.Depth) <= 1);
+            Debug.Assert(left.LastCharacter != '\r' || right.FirstCharacter != '\n');
+
+#if DEBUG
+            Interlocked.Increment(ref _totalCreated);
+#endif
 
             _left = left;
             _right = right;
+            this.Depth = 1 + Math.Max(left.Depth, right.Depth);
         }
 
         private static StringRebuilder ConsolidateOrBalanceTreeNode(StringRebuilder left, StringRebuilder right)
@@ -42,7 +55,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
                 (left.LineBreakCount + right.LineBreakCount <= TextModelOptions.StringRebuilderMaxLinesToConsolidate))
             {
                 //Consolidate the two rebuilders into a single simple string rebuilder
-                return SimpleStringRebuilder.Create(left, right);
+                return StringRebuilder.Consolidate(left, right);
             }
             else
                 return BinaryStringRebuilder.BalanceTreeNode(left, right);
@@ -163,14 +176,14 @@ namespace Microsoft.VisualStudio.Text.Implementation
                     (left.LineBreakCount + right.LineBreakCount <= TextModelOptions.StringRebuilderMaxLinesToConsolidate))
             {
                 //Consolidate the two rebuilders into a single simple string rebuilder
-                return SimpleStringRebuilder.Create(left, right);
+                return StringRebuilder.Consolidate(left, right);
             }
-            else if (right.StartsWithNewLine && left.EndsWithReturn)
+            else if ((right.FirstCharacter == '\n') && (left.LastCharacter == '\r'))
             {
                 //Don't allow a line break to be broken across the seam
-                return BinaryStringRebuilder.Create(BinaryStringRebuilder.Create(left.Substring(new Span(0, left.Length - 1)),
+                return BinaryStringRebuilder.Create(BinaryStringRebuilder.Create(left.GetSubText(new Span(0, left.Length - 1)),
                                                                                  _crlf),
-                                                    right.Substring(Span.FromBounds(1, right.Length)));
+                                                    right.GetSubText(Span.FromBounds(1, right.Length)));
             }
             else
             {
@@ -184,6 +197,8 @@ namespace Microsoft.VisualStudio.Text.Implementation
                                  _left.ToString(), _right.ToString());
         }
 
+        public override int Depth { get; }
+
         #region StringRebuilder Members
         public override int GetLineNumberFromPosition(int position)
         {
@@ -196,41 +211,46 @@ namespace Microsoft.VisualStudio.Text.Implementation
                       _right.GetLineNumberFromPosition(position - _left.Length));
         }
 
-        public override LineSpan GetLineFromLineNumber(int lineNumber)
+        public override void GetLineFromLineNumber(int lineNumber, out Span extent, out int lineBreakLength)
         {
             if ((lineNumber < 0) || (lineNumber > this.LineBreakCount))
                 throw new ArgumentOutOfRangeException("lineNumber");
 
             if (lineNumber < _left.LineBreakCount)
-                return _left.GetLineFromLineNumber(lineNumber);
+            {
+                _left.GetLineFromLineNumber(lineNumber, out extent, out lineBreakLength);
+            }
             else if (lineNumber > _left.LineBreakCount)
             {
-                LineSpan rightSpan = _right.GetLineFromLineNumber(lineNumber - _left.LineBreakCount);
-
-                return new LineSpan(lineNumber, new Span(rightSpan.Start + _left.Length, rightSpan.Length), rightSpan.LineBreakLength);
+                _right.GetLineFromLineNumber(lineNumber - _left.LineBreakCount, out extent, out lineBreakLength);
+                extent = new Span(extent.Start + _left.Length, extent.Length);
             }
             else
             {
-                int start = (lineNumber == 0)
-                            ? 0
-                            : _left.GetLineFromLineNumber(lineNumber).Start;
+                // The line crosses the seam.
+                int start = 0;
+                if (lineNumber != 0)
+                {
+                    _left.GetLineFromLineNumber(lineNumber, out extent, out lineBreakLength);   // ignore the returned extend.Length
+
+                    start = extent.Start;
+                    Debug.Assert(lineBreakLength == 0);
+                }
 
                 int end;
-                int breakLength;
 
                 if (lineNumber == this.LineBreakCount)
                 {
                     end = this.Length;
-                    breakLength = 0;
+                    lineBreakLength = 0;
                 }
                 else
                 {
-                    LineSpan rightSpan = _right.GetLineFromLineNumber(0);
-                    end = rightSpan.End + _left.Length;
-                    breakLength = rightSpan.LineBreakLength;
+                    _right.GetLineFromLineNumber(0, out extent, out lineBreakLength);
+                    end = extent.End + _left.Length;
                 }
 
-                return new LineSpan(lineNumber, Span.FromBounds(start, end), breakLength);
+                extent = Span.FromBounds(start, end);
             }
         }
 
@@ -333,7 +353,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
             }
         }
 
-        public override StringRebuilder Substring(Span span)
+        public override StringRebuilder GetSubText(Span span)
         {
             if (span.End > this.Length)
                 throw new ArgumentOutOfRangeException("span");
@@ -341,27 +361,17 @@ namespace Microsoft.VisualStudio.Text.Implementation
             if (span.Length == this.Length)
                 return this;
             else if (span.End <= _left.Length)
-                return _left.Substring(span);
+                return _left.GetSubText(span);
             else if (span.Start >= _left.Length)
-                return _right.Substring(new Span(span.Start - _left.Length, span.Length));
+                return _right.GetSubText(new Span(span.Start - _left.Length, span.Length));
             else
-                return BinaryStringRebuilder.Create(_left.Substring(Span.FromBounds(span.Start, _left.Length)),
-                                                    _right.Substring(Span.FromBounds(0, span.End - _left.Length)));
+                return BinaryStringRebuilder.Create(_left.GetSubText(Span.FromBounds(span.Start, _left.Length)),
+                                                    _right.GetSubText(Span.FromBounds(0, span.End - _left.Length)));
         }
 
         public override StringRebuilder Child(bool rightSide)
         {
             return rightSide ? _right : _left;
-        }
-
-        public override bool EndsWithReturn
-        {
-            get { return _right.EndsWithReturn; }
-        }
-
-        public override bool StartsWithNewLine
-        {
-            get { return _left.StartsWithNewLine; }
         }
         #endregion
     }

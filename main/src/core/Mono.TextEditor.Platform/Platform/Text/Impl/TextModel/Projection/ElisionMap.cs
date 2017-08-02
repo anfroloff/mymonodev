@@ -159,20 +159,20 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             NormalizedSpanCollection elisionChangeSpans = NormalizedSpanCollection.Difference(beforeSourceSpans, afterElisionSourceSpans);
             foreach (Span s in elisionChangeSpans)
             {
-                textChanges.Add(new TextChange(this.root.MapFromSourceSnapshotToNearest(s.Start, 0),
-                                               new ReferenceChangeString(new SnapshotSpan(sourceSnapshot, s)),
-                                               ChangeString.EmptyChangeString,
-                                               sourceSnapshot));
+                textChanges.Add(TextChange.Create(this.root.MapFromSourceSnapshotToNearest(s.Start, 0),
+                                                  BufferFactoryService.StringRebuilderFromSnapshotAndSpan(sourceSnapshot, s),
+                                                  StringRebuilder.Empty,
+                                                  sourceSnapshot));
             }
 
             NormalizedSpanCollection afterExpansionSourceSpans = NormalizedSpanCollection.Union(afterElisionSourceSpans, spansToExpand);
             NormalizedSpanCollection expansionChangeSpans = NormalizedSpanCollection.Difference(afterExpansionSourceSpans, afterElisionSourceSpans);
             foreach (Span s in expansionChangeSpans)
             {
-                textChanges.Add(new TextChange(this.root.MapFromSourceSnapshotToNearest(s.Start, 0),
-                                               ChangeString.EmptyChangeString,
-                                               new ReferenceChangeString(new SnapshotSpan(sourceSnapshot, s)),
-                                               sourceSnapshot));
+                textChanges.Add(TextChange.Create(this.root.MapFromSourceSnapshotToNearest(s.Start, 0),
+                                                  StringRebuilder.Empty,
+                                                  BufferFactoryService.StringRebuilderFromSnapshotAndSpan(sourceSnapshot, s),
+                                                  sourceSnapshot));
             }
 
             return textChanges.Count > 0 ? new ElisionMap(sourceSnapshot, afterExpansionSourceSpans) : this;
@@ -278,18 +278,6 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             return points;
         }
 
-        public LineSpan GetLineExtentFromLineNumber(int lineNumber, ITextSnapshot sourceSnapshot)
-        {
-            ProjectionLineInfo lineInfo = this.root.GetLineFromLineNumber(sourceSnapshot, lineNumber);
-            return new LineSpan(lineInfo.lineNumber, Span.FromBounds(lineInfo.start, lineInfo.end), lineInfo.lineBreakLength);
-        }
-
-        public LineSpan GetLineExtentFromPosition(int position, ITextSnapshot sourceSnapshot)
-        {
-            ProjectionLineInfo lineInfo = this.root.GetLineFromPosition(sourceSnapshot, position, 0, 0, 0, 0, 0);
-            return new LineSpan(lineInfo.lineNumber, Span.FromBounds(lineInfo.start, lineInfo.end), lineInfo.lineBreakLength);
-        }
-
         public int GetLineNumberFromPosition(int position, ITextSnapshot sourceSnapshot)
         {
             return this.root.GetLineNumberFromPosition(sourceSnapshot, position, 0, 0);
@@ -307,17 +295,8 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             {
                 int accumulatedDelete = 0;
                 int incrementalAccumulatedProjectedDelta = 0;
-                ChangeString newText;
-                TextChange concreteSourceChange = sourceChange as TextChange;
-                if (concreteSourceChange != null)
-                {
-                    newText = concreteSourceChange._newText;
-                }
-                else
-                {
-                    // handle mocks in tests
-                    newText = new LiteralChangeString(sourceChange.NewText);
-                }
+                StringRebuilder newText = TextChange.NewStringRebuilder(sourceChange);
+
                 newRoot = newRoot.IncorporateChange(beforeSourceSnapshot      : beforeSourceSnapshot,
                                                     afterSourceSnapshot       : sourceSnapshot,
                                                     beforeElisionSnapshot     : beforeElisionSnapshot,

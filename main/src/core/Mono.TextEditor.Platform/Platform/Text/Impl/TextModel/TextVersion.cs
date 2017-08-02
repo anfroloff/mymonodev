@@ -12,101 +12,76 @@ namespace Microsoft.VisualStudio.Text.Implementation
     /// <summary>
     /// An internal implementation of ITextVersion
     /// </summary>
-    internal partial class TextVersion : ITextVersion
+    internal partial class TextVersion : ITextVersion, ITextVersion2
     {
-        private ITextBuffer textBuffer;
-        private int versionNumber;
-        private int reiteratedVersionNumber;
-
-        private TextVersion next;
-        private INormalizedTextChangeCollection normalizedChanges;
-        private int versionLength;
+        private readonly TextImageVersion _textImageVersion;
 
         /// <summary>
         /// Initializes a new instance of a <see cref="TextVersion"/>.
         /// </summary>
         /// <param name="textBuffer">The <see cref="ITextBuffer"/> to which the version belongs.</param>
-        /// <param name="versionNumber">The version number, which should be one greater than the preceding version.</param>
-        /// <param name="reiteratedVersionNumber">The reiterated version number, which must be less than or equal to the versionNumber.</param>
-        /// <exception cref="ArgumentOutOfRangeException"><paramref name="versionNumber"/> is negative, or 
-        /// <paramref name="reiteratedVersionNumber"/> is either negative or greater than <paramref name="versionNumber"/>.</exception>
-        public TextVersion(ITextBuffer textBuffer, int versionNumber, int reiteratedVersionNumber, int length)
+        /// <param name="imageVersion">The <see cref="ITextImageVersion"/> of the associated snapshot.</param>
+        public TextVersion(ITextBuffer textBuffer, TextImageVersion imageVersion)
         {
             if (textBuffer == null)
             {
-                throw new ArgumentNullException("textBuffer");
+                throw new ArgumentNullException(nameof(textBuffer));
             }
-            if (versionNumber < 0)
-            {
-                throw new ArgumentOutOfRangeException("versionNumber");
-            }
-            if (reiteratedVersionNumber < 0 || reiteratedVersionNumber > versionNumber)
-            {
-                throw new ArgumentOutOfRangeException("reiteratedVersionNumber");
-            }
-            if (length < 0)
-            {
-                throw new ArgumentOutOfRangeException("length");
-            }
-            this.textBuffer = textBuffer;
-            this.versionNumber = versionNumber;
-            this.reiteratedVersionNumber = reiteratedVersionNumber;
-            this.versionLength = length;
-        }
 
+            if (imageVersion == null)
+            {
+                throw new ArgumentNullException(nameof(imageVersion));
+            }
 
-        /// <summary>
-        /// Attaches the change to the current node and creates the next version node
-        /// </summary>
-        public TextVersion CreateNext(INormalizedTextChangeCollection changes, int reiteratedVersionNumber)
-        {
-            this.normalizedChanges = changes;
-            int delta = 0;
-            int changeCount = changes.Count;
-            for (int c = 0; c < changeCount; ++c)
-            {
-                delta += changes[c].Delta;
-            }
-            this.next = new TextVersion(this.TextBuffer, this.VersionNumber + 1, reiteratedVersionNumber, this.versionLength + delta);
-            return this.next;
-        }
-
-        public TextVersion CreateNext(INormalizedTextChangeCollection changes)
-        {
-            if (changes.Count == 0)
-            {
-                // If there are no changes (e.g. readonly region edit or content type change), then
-                // we consider this a reiteration of the current version.
-                return CreateNext(changes, this.ReiteratedVersionNumber);
-            }
-            else
-            {
-                return CreateNext(changes, this.VersionNumber + 1);
-            }
+            this.TextBuffer = textBuffer;
+            _textImageVersion = imageVersion;
         }
 
         /// <summary>
-        /// Used when the normalized change list of a version needs to refer ahead to the following snapshot
+        /// Create a new version based on applying <paramref name="changes"/> to this.
         /// </summary>
-        public void AddNextVersion(INormalizedTextChangeCollection changes, TextVersion nextVersion)
+        /// <param name="changes">null if set later</param>
+        /// <param name="newLength">use -1 to compute a length</param>
+        /// <param name="reiteratedVersionNumber">use -1 to get the default value</param>
+        /// <remarks>
+        /// <para>If <paramref name="changes"/> can be null, then <paramref name="newLength"/> cannot be -1.</para>
+        /// </remarks>
+        internal TextVersion CreateNext(INormalizedTextChangeCollection changes, int newLength = -1, int reiteratedVersionNumber = -1)
         {
-            this.normalizedChanges = changes;
-            this.next = nextVersion;
+            if (this.Next != null)
+                throw new InvalidOperationException("Not allowed to CreateNext twice");
+
+            var newTextImageVersion = this._textImageVersion.CreateNext(reiteratedVersionNumber: reiteratedVersionNumber, length: newLength, changes: changes);
+
+            var next = new TextVersion(this.TextBuffer, newTextImageVersion);
+            this.Next = next;
+
+            return next;
+        }
+
+        internal void SetLength(int length)
+        {
+            _textImageVersion.SetLength(length);
+        }
+
+        internal void SetChanges(INormalizedTextChangeCollection changes)
+        {
+            _textImageVersion.SetChanges(changes);
         }
 
         public ITextBuffer TextBuffer
         {
-            get { return this.textBuffer; }
+            get;
         }
 
         public int VersionNumber
         {
-            get { return this.versionNumber; }
+            get { return this.ImageVersion.VersionNumber; }
         }
 
         public int ReiteratedVersionNumber
         {
-            get { return this.reiteratedVersionNumber; }
+            get { return this.ImageVersion.ReiteratedVersionNumber; }
         }
 
         /// <summary>
@@ -114,7 +89,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
         /// </summary>
         public ITextVersion Next
         {
-            get { return this.next; }
+            get; private set;
         }
 
         /// <summary>
@@ -122,18 +97,15 @@ namespace Microsoft.VisualStudio.Text.Implementation
         /// </summary>
         public INormalizedTextChangeCollection Changes
         {
-            get { return this.normalizedChanges; }
+            get { return this.ImageVersion.Changes; }
         }
 
         public int Length
         {
-            get { return this.versionLength; }
+            get { return this.ImageVersion.Length; }
         }
 
-        internal int InternalLength
-        {
-            set { this.versionLength = value; } // hacky
-        }
+        public ITextImageVersion ImageVersion { get { return _textImageVersion; } }
 
         #region Point and Span Factories
         public ITrackingPoint CreateTrackingPoint(int position, PointTrackingMode trackingMode)

@@ -11,6 +11,7 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Text;
+    using System.Threading;
 
     using Microsoft.VisualStudio.Text.Implementation;
 
@@ -20,146 +21,13 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
         protected int totalLength = 0;
         protected int totalLineCount = 1;
 
-        protected BaseProjectionSnapshot(ITextVersion version)
-          : base(version)
+        protected BaseProjectionSnapshot(ITextVersion2 version, StringRebuilder builder)
+          : base(version, builder)
         {
         }
         #endregion
 
         public new abstract IProjectionBufferBase TextBuffer { get; }
-
-        #region Text Fetching
-        public override int Length
-        {
-            get { return this.totalLength; }
-        }
-
-        public override string GetText(Span span)
-        {
-            if (span.End > this.totalLength)
-            {
-                throw new ArgumentOutOfRangeException("span");
-            }
-
-            IList<SnapshotSpan> copySourceSpans = MapToSourceSnapshotsForRead(span);
-            if (copySourceSpans.Count == 1)
-            {
-                return copySourceSpans[0].GetText();
-            }
-            else
-            {
-                StringBuilder sb = new StringBuilder();
-                foreach (SnapshotSpan copySourceSpan in copySourceSpans)
-                {
-                    sb.Append(copySourceSpan.GetText());
-                }
-                return sb.ToString();
-            }
-        }
-
-        public override char this[int position]
-        {
-            get 
-            {
-                SnapshotPoint? p = MapToSourceSnapshot(position, PositionAffinity.Successor);
-                if (p.HasValue)
-                {
-                    return p.Value.GetChar();
-                }
-                else
-                {
-                    throw new ArgumentOutOfRangeException("position");
-                }
-            }
-        }
-
-        public override void CopyTo(int sourceIndex, char[] destination, int destinationIndex, int count)
-        {
-            if (destination == null)
-            {
-                throw new ArgumentNullException("destination");
-            }
-            if (sourceIndex < 0 || sourceIndex > this.totalLength)
-            {
-                throw new ArgumentOutOfRangeException("sourceIndex");
-            }
-            if (count < 0 || sourceIndex + count > this.totalLength || destinationIndex + count > destination.Length)
-            {
-                throw new ArgumentOutOfRangeException("count");
-            }
-            if (count > 0)
-            {
-                IList<SnapshotSpan> copySourceSpans = MapToSourceSnapshotsForRead(new Span(sourceIndex, count));
-                foreach (SnapshotSpan copySourceSpan in copySourceSpans)
-                {
-                    copySourceSpan.Snapshot.CopyTo(copySourceSpan.Start, destination, destinationIndex, copySourceSpan.Length);
-                    destinationIndex += copySourceSpan.Length;
-                }
-            }
-        }
-
-        public override char[] ToCharArray(int startIndex, int length)
-        {
-            if (length < 0 || length > this.totalLength)
-            {
-                throw new ArgumentOutOfRangeException("length");
-            }
-            char[] destination = new char[length];
-            CopyTo(startIndex, destination, 0, length);
-            return destination;
-        }
-        #endregion
-
-        #region Line Methods
-        public override int LineCount
-        {
-            get { return this.totalLineCount; }
-        }
-
-        public override IEnumerable<ITextSnapshotLine> Lines
-        {
-            get
-            {
-                for (int line = 0; line < this.totalLineCount; ++line)
-                {
-                    yield return GetLineFromLineNumber(line);
-                }
-            }
-        }
-        #endregion
-
-        #region Writing
-        public override void Write(System.IO.TextWriter writer)
-        {
-            if (writer == null)
-            {
-                throw new ArgumentNullException("writer");
-            }
-            UncheckedWrite(writer, new Span(0, this.totalLength));
-        }
-
-        public override void Write(System.IO.TextWriter writer, Span span)
-        {
-            if (writer == null)
-            {
-                throw new ArgumentNullException("writer");
-            }
-            if (span.End > this.totalLength)
-            {
-                throw new ArgumentOutOfRangeException("span");
-            }
-            UncheckedWrite(writer, span);
-        }
-
-        private void UncheckedWrite(System.IO.TextWriter writer, Span span)
-        {
-            IList<SnapshotSpan> writeSourceSpans = MapToSourceSnapshotsForRead(span);
-            foreach (SnapshotSpan writeSourceSpan in writeSourceSpans)
-            {
-                writeSourceSpan.Snapshot.Write(writer, writeSourceSpan.Span);
-            }
-        }
-        #endregion
 
         public ReadOnlyCollection<SnapshotPoint> MapToSourceSnapshots(int position)
         {

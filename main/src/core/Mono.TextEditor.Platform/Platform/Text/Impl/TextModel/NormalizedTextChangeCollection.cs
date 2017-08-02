@@ -8,35 +8,42 @@
 namespace Microsoft.VisualStudio.Text.Implementation
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Diagnostics;
-    using System.Text;
     using Microsoft.VisualStudio.Text.Differencing;
     using Microsoft.VisualStudio.Text.Utilities;
 
-    internal partial class NormalizedTextChangeCollection : ReadOnlyCollection<ITextChange>, INormalizedTextChangeCollection 
+    internal partial class NormalizedTextChangeCollection : INormalizedTextChangeCollection 
     {
-        public static INormalizedTextChangeCollection Create(IList<TextChange> changes)
+        public static readonly NormalizedTextChangeCollection Empty = new NormalizedTextChangeCollection(new TextChange[0]);
+        private readonly IReadOnlyList<TextChange> _changes;
+
+        public static INormalizedTextChangeCollection Create(IReadOnlyList<TextChange> changes)
         {
             INormalizedTextChangeCollection result = GetTrivialCollection(changes);
             return result != null ? result : new NormalizedTextChangeCollection(changes);
         }
 
-        public static INormalizedTextChangeCollection Create(IList<TextChange> changes, StringDifferenceOptions? differenceOptions, ITextDifferencingService textDifferencingService,
+        public static INormalizedTextChangeCollection Create(IReadOnlyList<TextChange> changes, StringDifferenceOptions? differenceOptions, ITextDifferencingService textDifferencingService,
                                                              ITextSnapshot before = null, ITextSnapshot after = null)
         {
             INormalizedTextChangeCollection result = GetTrivialCollection(changes);
             return result != null ? result : new NormalizedTextChangeCollection(changes, differenceOptions, textDifferencingService, before, after);
         }
 
-        private static TrivialNormalizedTextChangeCollection GetTrivialCollection(IList<TextChange> changes)
+        private static INormalizedTextChangeCollection GetTrivialCollection(IReadOnlyList<TextChange> changes)
         {
             if (changes == null)
             {
                 throw new ArgumentNullException("changes");
             }
-            if (changes.Count == 1)
+
+            if (changes.Count == 0)
+            {
+                return NormalizedTextChangeCollection.Empty;
+            }
+            else if (changes.Count == 1)
             {
                 TextChange tc = changes[0];
                 if (tc.OldLength + tc.NewLength == 1 && tc.LineBreakBoundaryConditions == LineBreakBoundaryConditions.None &&
@@ -47,6 +54,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
                     return new TrivialNormalizedTextChangeCollection(data, isInsertion, tc.OldPosition);
                 }
             }
+
             return null;
         }
 
@@ -55,9 +63,9 @@ namespace Microsoft.VisualStudio.Text.Implementation
         /// but don't compute minimal edits.
         /// </summary>
         /// <param name="changes">List of changes to normalize</param>
-        private NormalizedTextChangeCollection(IList<TextChange> changes)
-            : base(Normalize(changes, null, null, null, null))
+        private NormalizedTextChangeCollection(IReadOnlyList<TextChange> changes)
         {
+            _changes = Normalize(changes, null, null, null, null);
         }
 
         /// <summary>
@@ -68,10 +76,10 @@ namespace Microsoft.VisualStudio.Text.Implementation
         /// <param name="textDifferencingService">The difference service to use, if differenceOptions were supplied.</param>
         /// <param name="before">Text snapshot before the change (can be null).</param>
         /// <param name="after">Text snapshot after the change (can be null).</param>
-        private NormalizedTextChangeCollection(IList<TextChange> changes, StringDifferenceOptions? differenceOptions, ITextDifferencingService textDifferencingService,
+        private NormalizedTextChangeCollection(IReadOnlyList<TextChange> changes, StringDifferenceOptions? differenceOptions, ITextDifferencingService textDifferencingService,
                                                ITextSnapshot before, ITextSnapshot after)
-            : base(Normalize(changes, differenceOptions, textDifferencingService, before, after))
         {
+            _changes = Normalize(changes, differenceOptions, textDifferencingService, before, after);
         }
 
         public bool IncludesLineChanges
@@ -101,8 +109,8 @@ namespace Microsoft.VisualStudio.Text.Implementation
         /// <returns>A (possibly empty) list of changes, sorted by Position, with adjacent and overlapping changes combined
         /// where possible.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="changes"/> is null.</exception>
-        private static IList<ITextChange> Normalize(IList<TextChange> changes, StringDifferenceOptions? differenceOptions, ITextDifferencingService textDifferencingService,
-                                                    ITextSnapshot before, ITextSnapshot after)
+        private static IReadOnlyList<TextChange> Normalize(IReadOnlyList<TextChange> changes, StringDifferenceOptions? differenceOptions, ITextDifferencingService textDifferencingService,
+                                                            ITextSnapshot before, ITextSnapshot after)
         {
             if (changes.Count == 1 && differenceOptions == null)
             {
@@ -110,13 +118,11 @@ namespace Microsoft.VisualStudio.Text.Implementation
                 // If we are computing minimal changes, we need to go through the
                 // algorithm anyway, since this change may be split up into many
                 // smaller changes
-                FrugalList<ITextChange> singleResult = new FrugalList<ITextChange>();
-                singleResult.Add(changes[0]);
-                return singleResult;
+                return new TextChange[] { changes[0] };
             }
             else if (changes.Count == 0)
             {
-                return new FrugalList<ITextChange>();
+                return new TextChange[0];
             }
 
             TextChange[] work = TextUtilities.StableSort(changes, TextChange.Compare);
@@ -147,19 +153,19 @@ namespace Microsoft.VisualStudio.Text.Implementation
                     // to avoid expensive pairwise concatenations.
                     //
                     // Use StringRebuilders (which allow strings to be concatenated without creating copies of the strings) to assemble the
-                    // pieces and then convert the rebuilders to a ReferenceChangeString (which wraps a StringRebuilder) at the end.
-                    StringRebuilder newRebuilder = aChange._newText.Content;
-                    StringRebuilder oldRebuilder = aChange._oldText.Content;
+                    // pieces.
+                    StringRebuilder newRebuilder = aChange._newText;
+                    StringRebuilder oldRebuilder = aChange._oldText;
 
                     int aChangeIncrementalDeletions = 0;
                     do
                     {
-                        newRebuilder = newRebuilder.Append(bChange._newText.Content);
+                        newRebuilder = newRebuilder.Append(bChange._newText);
 
                         if (gap == 0)
                         {
                             // abutting deletions
-                            oldRebuilder = oldRebuilder.Append(bChange._oldText.Content);
+                            oldRebuilder = oldRebuilder.Append(bChange._oldText);
                             aChangeIncrementalDeletions += bChange.OldLength;
                             aChange.LineBreakBoundaryConditions =
                                 (aChange.LineBreakBoundaryConditions & LineBreakBoundaryConditions.PrecedingReturn) |
@@ -171,7 +177,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
                             if (aChange.OldEnd + aChangeIncrementalDeletions < bChange.OldEnd)
                             {
                                 int overlap = aChange.OldEnd + aChangeIncrementalDeletions - bChange.OldPosition;
-                                oldRebuilder = oldRebuilder.Append(bChange._oldText.Content.Substring(Span.FromBounds(overlap, bChange._oldText.Length)));
+                                oldRebuilder = oldRebuilder.Append(bChange._oldText.GetSubText(Span.FromBounds(overlap, bChange._oldText.Length)));
                                 aChangeIncrementalDeletions += (bChange.OldLength - overlap);
                                 aChange.LineBreakBoundaryConditions =
                                     (aChange.LineBreakBoundaryConditions & LineBreakBoundaryConditions.PrecedingReturn) |
@@ -190,8 +196,8 @@ namespace Microsoft.VisualStudio.Text.Implementation
                         gap = bChange.OldPosition - aChange.OldEnd - aChangeIncrementalDeletions;
                     } while (gap <= 0);
 
-                    work[a]._oldText = ReferenceChangeString.CreateChangeString(oldRebuilder);
-                    work[a]._newText = ReferenceChangeString.CreateChangeString(newRebuilder);
+                    work[a]._oldText = oldRebuilder;
+                    work[a]._newText = newRebuilder;
 
                     if (b < work.Length)
                     {
@@ -205,7 +211,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
             // a points to the last surviving change
             work[a].NewPosition = work[a].OldPosition + accumulatedDelta;
 
-            List<ITextChange> result = new List<ITextChange>();
+            List<TextChange> result = new List<TextChange>();
 
             if (differenceOptions.HasValue)
             {
@@ -289,8 +295,8 @@ namespace Microsoft.VisualStudio.Text.Implementation
 
         private static IList<TextChange> GetChangesFromDifferenceCollection(ref int delta,
                                                                             TextChange originalChange,
-                                                                            ChangeString oldText,
-                                                                            ChangeString newText,
+                                                                            StringRebuilder oldText,
+                                                                            StringRebuilder newText,
                                                                             IHierarchicalDifferenceCollection diffCollection,
                                                                             int leftOffset = 0,
                                                                             int rightOffset = 0)
@@ -315,8 +321,8 @@ namespace Microsoft.VisualStudio.Text.Implementation
                 else
                 {
                     TextChange minimalChange = new TextChange(originalChange.OldPosition + leftDiffSpan.Start,
-                                                              oldText.Substring(leftDiffSpan),
-                                                              newText.Substring(rightDiffSpan),
+                                                              oldText.GetSubText(leftDiffSpan),
+                                                              newText.GetSubText(rightDiffSpan),
                                                               ComputeBoundaryConditions(originalChange, oldText, leftDiffSpan));
                     
                     minimalChange.NewPosition = originalChange.NewPosition + rightDiffSpan.Start;
@@ -334,7 +340,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
         }
 
 
-        private static LineBreakBoundaryConditions ComputeBoundaryConditions(TextChange outerChange, ChangeString oldText, Span leftSpan)
+        private static LineBreakBoundaryConditions ComputeBoundaryConditions(TextChange outerChange, StringRebuilder oldText, Span leftSpan)
         {
             LineBreakBoundaryConditions bc = LineBreakBoundaryConditions.None;
             if (leftSpan.Start == 0)
@@ -417,15 +423,15 @@ namespace Microsoft.VisualStudio.Text.Implementation
                     int normDelta = normChange.NewPosition - normChange.OldPosition;
                     denormChangesWithSentinel.Insert
                         (rover, new TextChange(normChange.OldPosition - accumulatedDelta,
-                                               normChange.OldText.Substring(0, deletionPrefix),
-                                               normChange.NewText,
+                                               TextChange.ChangeOldSubText(normChange, 0, deletionPrefix),
+                                               TextChange.NewStringRebuilder(normChange),
                                                LineBreakBoundaryConditions.None));
                     accumulatedNormalizedDelta += normDelta;
 
                     // the second part remains 'normalized' in case it needs to be split again
                     TextChange splitee = new TextChange(normChange.OldPosition + deletionPrefix,
-                                                        normChange.OldText.Substring(deletionPrefix, deletionSuffix),
-                                                        "",
+                                                        TextChange.ChangeOldSubText(normChange, deletionPrefix, deletionSuffix),
+                                                        StringRebuilder.Empty,
                                                         LineBreakBoundaryConditions.None);
                     splitee.NewPosition += normDelta;
                     normChanges.Insert(n + 1, splitee);
@@ -434,14 +440,84 @@ namespace Microsoft.VisualStudio.Text.Implementation
                 {
                     denormChangesWithSentinel.Insert
                         (rover, new TextChange(normChange.OldPosition - accumulatedDelta,
-                                               normChange.OldText,
-                                               normChange.NewText,
+                                               TextChange.OldStringRebuilder(normChange),
+                                               TextChange.NewStringRebuilder(normChange),
                                                LineBreakBoundaryConditions.None));
                     accumulatedNormalizedDelta += normChange.Delta;
                 }
 
                 rover++;
             }
+        }
+
+        int ICollection<ITextChange>.Count => _changes.Count;
+
+        bool ICollection<ITextChange>.IsReadOnly => true;
+
+        ITextChange IList<ITextChange>.this[int index]
+        {
+            get => _changes[index];
+            set => throw new System.NotSupportedException();
+        }
+
+
+        int IList<ITextChange>.IndexOf(ITextChange item)
+        {
+            for (int i = 0; (i < _changes.Count); ++i)
+            {
+                if (item.Equals(_changes[i]))
+                    return i;
+            }
+
+            return -1;
+        }
+
+        void IList<ITextChange>.Insert(int index, ITextChange item)
+        {
+            throw new System.NotSupportedException();
+        }
+
+        void IList<ITextChange>.RemoveAt(int index)
+        {
+            throw new System.NotSupportedException();
+        }
+
+        void ICollection<ITextChange>.Add(ITextChange item)
+        {
+            throw new System.NotSupportedException();
+        }
+
+        void ICollection<ITextChange>.Clear()
+        {
+            throw new System.NotSupportedException();
+        }
+
+        bool ICollection<ITextChange>.Contains(ITextChange item)
+        {
+            return ((IList<ITextChange>)this).IndexOf(item) != -1;
+        }
+
+        void ICollection<ITextChange>.CopyTo(ITextChange[] array, int arrayIndex)
+        {
+            for (int i = 0; (i < _changes.Count); ++i)
+            {
+                array[i + arrayIndex] = _changes[i];
+            }
+        }
+
+        bool ICollection<ITextChange>.Remove(ITextChange item)
+        {
+            throw new System.NotSupportedException();
+        }
+
+        IEnumerator<ITextChange> IEnumerable<ITextChange>.GetEnumerator()
+        {
+            return _changes.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return _changes.GetEnumerator();
         }
     }
 }

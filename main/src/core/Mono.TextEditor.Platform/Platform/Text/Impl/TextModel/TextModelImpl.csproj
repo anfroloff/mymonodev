@@ -26,11 +26,12 @@
     <Compile Include="BaseSnapshot.cs" />
     <Compile Include="BufferFactoryService.cs" />
     <Compile Include="BufferGroup.cs" />
-    <Compile Include="ChangeString.cs" />
-    <Compile Include="ExtendedCharacterDetector.cs" />
-    <Compile Include="ExtendedCharacterDetectionDecoder.cs" />
+    <Compile Include="CachingTextImage.cs" />
     <Compile Include="EncodedStreamReader.cs" />
+    <Compile Include="ExtendedCharacterDetectionDecoder.cs" />
+    <Compile Include="ExtendedCharacterDetector.cs" />
     <Compile Include="FallbackDetector.cs" />
+    <Compile Include="FileUtilities.cs" />
     <Compile Include="ForwardFidelityCustomTrackingSpan.cs" />
     <Compile Include="ForwardFidelityTrackingPoint.cs" />
     <Compile Include="ForwardFidelityTrackingSpan.cs" />
@@ -52,12 +53,13 @@
     <Compile Include="TextChange.cs" />
     <Compile Include="TextDocument.cs" />
     <Compile Include="TextDocumentFactoryService.cs" />
-    <Compile Include="TrackingPoint.cs" />
+    <Compile Include="TextImageVersion.cs" />
+    <Compile Include="TextModelUtilities.cs" />
     <Compile Include="TextSnapshot.cs" />
     <Compile Include="TextSnapshotLine.cs" />
-    <Compile Include="TrackingSpan.cs" />
-    <Compile Include="TextModelUtilities.cs" />
     <Compile Include="TextVersion.cs" />
+    <Compile Include="TrackingPoint.cs" />
+    <Compile Include="TrackingSpan.cs" />
     <Compile Include="TrivialNormalizedTextChangeCollection.cs" />
     <Compile Include="VersionNumberPosition.cs" />
     <Compile Include="Projection\BaseProjectionBuffer.cs" />
@@ -70,29 +72,33 @@
     <Compile Include="Projection\ElisionSnapshot.cs" />
     <Compile Include="Projection\ProjectionBuffer.cs" />
     <Compile Include="Projection\ProjectionSnapshot.cs" />
-    <Compile Include="Projection\ProjectionSnapshotDoppelganger.cs" />
     <Compile Include="Projection\ProjectionSpanToChangeConverter.cs" />
     <Compile Include="Projection\ProjectionUtilities.cs" />
     <Compile Include="Projection\WeakEventHook.cs" />
-    <Compile Include="Storage\BaseTextStorageLoader.cs" />
+
     <Compile Include="Storage\CharStream.cs" />
-    <Compile Include="Storage\CompressedTextStorage.cs" />
-    <Compile Include="Storage\CompressedTextStorageLoader.cs" />
     <Compile Include="Storage\Compressor.cs" />
-    <Compile Include="Storage\EncodedLineBreaks.cs" />
-    <Compile Include="Storage\ITextStorage.cs" />
-    <Compile Include="Storage\ITextStorageLoader.cs" />
+    <Compile Include="Storage\ILineBreaks.cs" />
+    <Compile Include="Storage\LineBreakManager.cs" />
     <Compile Include="Storage\Page.cs" />
     <Compile Include="Storage\PageManager.cs" />
-    <Compile Include="Storage\SimpleTextStorage.cs" />
-    <Compile Include="Storage\SimpleTextStorageLoader.cs" />
+    <Compile Include="Storage\TextImageLoader.cs" />
+
     <Compile Include="StringRebuilder\BinaryStringRebuilder.cs" />
-    <Compile Include="StringRebuilder\LineSpan.cs" />
-    <Compile Include="StringRebuilder\SimpleStringRebuilder.cs" />
     <Compile Include="StringRebuilder\StringRebuilder.cs" />
+    <Compile Include="StringRebuilder\StringRebuilderForChars.cs" />
+    <Compile Include="StringRebuilder\StringRebuilderForCompressedChars.cs" />
+    <Compile Include="StringRebuilder\StringRebuilderForString.cs" />
+    <Compile Include="StringRebuilder\UnaryStringRebuilder.cs" />
+
     <Reference Include="System" />
+    <Reference Include="System.Runtime" />
+    <Reference Include="System.Collections.Immutable">
+      <HintPath>..\..\..\..\ExternalApis\System.Collections.Immutable\lib\netstandard1.0\System.Collections.Immutable.dll</HintPath>
+    </Reference>
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
+    <Reference Include="$(ExternalAPIsPath)\Microsoft.VisualStudio.Threading\lib\net45\Microsoft.VisualStudio.Threading.dll" />
     <EmbeddedResource Include="Strings.resx">
       <SubType>Designer</SubType>
       <Generator>ResXFileCodeGenerator</Generator>

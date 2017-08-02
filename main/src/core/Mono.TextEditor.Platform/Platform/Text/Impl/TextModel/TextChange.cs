@@ -25,10 +25,11 @@ namespace Microsoft.VisualStudio.Text.Implementation
 
         private int _oldPosition;
         private int _newPosition;
-        internal ChangeString _oldText, _newText;
-        private int? _lineCountDelta = null;
+        internal StringRebuilder _oldText, _newText;
         private LineBreakBoundaryConditions _lineBreakBoundaryConditions;
         private bool _isOpaque;
+
+        private int? _lineCountDelta = null;
         private int _masterChangeOffset = -1;
 
         #endregion // Private Members
@@ -48,40 +49,13 @@ namespace Microsoft.VisualStudio.Text.Implementation
         /// <param name="boundaryConditions">
         /// Information about neighboring line break characters.
         /// </param>
-        public TextChange(int oldPosition, string oldText, string newText, LineBreakBoundaryConditions boundaryConditions)
+        public TextChange(int oldPosition, StringRebuilder oldText, StringRebuilder newText, LineBreakBoundaryConditions boundaryConditions)
         {
             if (oldPosition < 0)
             {
                 throw new ArgumentOutOfRangeException("oldPosition");
             }
-            _oldPosition = oldPosition;
-            _newPosition = oldPosition;
-            _oldText = new LiteralChangeString(oldText);
-            _newText = new LiteralChangeString(newText);
-            _lineBreakBoundaryConditions = boundaryConditions;
-        }
 
-        /// <summary>
-        /// Constructs a Text Change object.
-        /// </summary>
-        /// <param name="oldPosition">
-        /// The character position in the TextBuffer at which the text change happened.
-        /// </param>
-        /// <param name="oldText">
-        /// The text in the buffer that was replaced.
-        /// </param>
-        /// <param name="newText">
-        /// The text that replaces the old text.
-        /// </param>
-        /// <param name="boundaryConditions">
-        /// Information about neighboring line break characters.
-        /// </param>
-        public TextChange(int oldPosition, ChangeString oldText, ChangeString newText, LineBreakBoundaryConditions boundaryConditions)
-        {
-            if (oldPosition < 0)
-            {
-                throw new ArgumentOutOfRangeException("oldPosition");
-            }
             _oldPosition = oldPosition;
             _newPosition = oldPosition;
             _oldText = oldText;
@@ -89,51 +63,35 @@ namespace Microsoft.VisualStudio.Text.Implementation
             _lineBreakBoundaryConditions = boundaryConditions;
         }
 
-        /// <summary>
-        /// Constructs a Text Change object.
-        /// </summary>
-        /// <param name="oldPosition">
-        /// The character position in the TextBuffer at which the text change happened.
-        /// </param>
-        /// <param name="oldText">
-        /// The text in the buffer that was replaced.
-        /// </param>
-        /// <param name="newText">
-        /// The text that replaces the old text.
-        /// </param>
-        /// <param name="currentSnapshot">
-        /// Context in which change occurs.
-        /// </param>
-        public TextChange(int oldPosition, string oldText, string newText, ITextSnapshot currentSnapshot) :
-            this(oldPosition, oldText, newText, ComputeLineBreakBoundaryConditions(currentSnapshot, oldPosition, oldText.Length))
+        internal TextChange(int oldPosition, string oldText, string newText, LineBreakBoundaryConditions boundaryConditions)
+            : this(oldPosition, StringRebuilder.Create(oldText), StringRebuilder.Create(newText), boundaryConditions)
+        { }
+
+        public static TextChange Create(int oldPosition, string oldText, string newText, ITextSnapshot currentSnapshot)
         {
+            return new TextChange(oldPosition, StringRebuilder.Create(oldText), StringRebuilder.Create(newText), ComputeLineBreakBoundaryConditions(currentSnapshot, oldPosition, oldText.Length));
         }
 
-        /// <summary>
-        /// Constructs a Text Change object.
-        /// </summary>
-        /// <param name="oldPosition">
-        /// The character position in the TextBuffer at which the text change happened.
-        /// </param>
-        /// <param name="oldText">
-        /// The text in the buffer that was replaced.
-        /// </param>
-        /// <param name="newText">
-        /// The text that replaces the old text.
-        /// </param>
-        /// <param name="currentSnapshot">
-        /// Context in which change occurs.
-        /// </param>
-        public TextChange(int oldPosition, ChangeString oldText, ChangeString newText, ITextSnapshot currentSnapshot) :
-            this(oldPosition, oldText, newText, ComputeLineBreakBoundaryConditions(currentSnapshot, oldPosition, oldText.Length))
+        public static TextChange Create(int oldPosition, StringRebuilder oldText, string newText, ITextSnapshot currentSnapshot)
         {
+            return new TextChange(oldPosition, oldText, StringRebuilder.Create(newText), ComputeLineBreakBoundaryConditions(currentSnapshot, oldPosition, oldText.Length));
+        }
+
+        public static TextChange Create(int oldPosition, string oldText, StringRebuilder newText, ITextSnapshot currentSnapshot)
+        {
+            return new TextChange(oldPosition, StringRebuilder.Create(oldText), newText, ComputeLineBreakBoundaryConditions(currentSnapshot, oldPosition, oldText.Length));
+        }
+
+        public static TextChange Create(int oldPosition, StringRebuilder oldText, StringRebuilder newText, ITextSnapshot currentSnapshot)
+        {
+            return new TextChange(oldPosition, oldText, newText, ComputeLineBreakBoundaryConditions(currentSnapshot, oldPosition, oldText.Length));
         }
 
         #region Public Properties
 
         public Span OldSpan
         {
-            get { return new Span(_oldPosition, _oldText.Length);  }
+            get { return new Span(_oldPosition, _oldText.Length); }
         }
 
         public Span NewSpan
@@ -157,16 +115,16 @@ namespace Microsoft.VisualStudio.Text.Implementation
         public int NewPosition
         {
             get { return _newPosition; }
-            internal set 
+            internal set
             {
                 if (value < 0)
                 {
                     throw new ArgumentOutOfRangeException("value");
                 }
-                _newPosition = value; 
+                _newPosition = value;
             }
         }
-        
+
         public int Delta
         {
             get { return _newText.Length - _oldText.Length; }
@@ -184,12 +142,12 @@ namespace Microsoft.VisualStudio.Text.Implementation
 
         public string OldText
         {
-            get { return _oldText.Text; }
+            get { return _oldText.GetText(new Span(0, _oldText.Length)); }
         }
 
         public string NewText
         {
-            get { return _newText.Text; }
+            get { return _newText.GetText(new Span(0, _newText.Length)); }
         }
 
         public int NewLength
@@ -211,7 +169,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
                 {
                     _lineCountDelta = TextModelUtilities.ComputeLineCountDelta(_lineBreakBoundaryConditions, _oldText, _newText);
                 }
-                return _lineCountDelta.Value; 
+                return _lineCountDelta.Value;
             }
         }
 
@@ -225,22 +183,12 @@ namespace Microsoft.VisualStudio.Text.Implementation
         #region Public Methods
         public string GetOldText(Span span)
         {
-            if (span.End > this.OldLength)
-            {
-                throw new ArgumentOutOfRangeException(nameof(span));
-            }
-
-            return _oldText.Substring(span);
+            return _oldText.GetText(span);
         }
 
         public string GetNewText(Span span)
         {
-            if (span.End > this.NewLength)
-            {
-                throw new ArgumentOutOfRangeException(nameof(span));
-            }
-
-            return _newText.Substring(span);
+            return _newText.GetText(span);
         }
 
         public char GetOldTextAt(int position)
@@ -275,28 +223,13 @@ namespace Microsoft.VisualStudio.Text.Implementation
             }
         }
 
-        /// <summary>
-        /// Retrieves the old text as a <see cref="ChangeString"/>.
-        /// </summary>
-        internal ChangeString OldChangeString
-        {
-            get { return _oldText; }
-        }
-
-        /// <summary>
-        /// Retrieves the new text as a <see cref="ChangeString"/>.
-        /// </summary>
-        internal ChangeString NewChangeString
-        {
-            get { return _newText; }
-        }
-
         internal void RecordMasterChangeOffset(int masterChangeOffset)
         {
             if (masterChangeOffset < 0)
                 throw new ArgumentOutOfRangeException("masterChangeOffset", "MasterChangeOffset should be non-negative.");
             if (_masterChangeOffset != -1)
                 throw new InvalidOperationException("MasterChangeOffset has already been set.");
+
             _masterChangeOffset = masterChangeOffset;
         }
 
@@ -350,5 +283,69 @@ namespace Microsoft.VisualStudio.Text.Implementation
             return ToString(false);
         }
         #endregion
+
+        public static StringRebuilder OldStringRebuilder(ITextChange change)
+        {
+            var textChange = change as TextChange;
+            return (textChange != null) ? textChange._oldText : StringRebuilder.Create(change.OldText);
+        }
+
+        public static StringRebuilder NewStringRebuilder(ITextChange change)
+        {
+            var textChange = change as TextChange;
+            return (textChange != null) ? textChange._newText : StringRebuilder.Create(change.NewText);
+        }
+
+        public static StringRebuilder ChangeOldSubText(ITextChange change, int start, int length)
+        {
+            var textChange = change as TextChange;
+            if (textChange != null)
+                return textChange._oldText.GetSubText(new Span(start, length));
+
+            var change3 = change as ITextChange3;
+            if (change3 != null)
+                return StringRebuilder.Create(change3.GetOldText(new Span(start, length)));
+
+            return StringRebuilder.Create(change.OldText.Substring(start, length));
+        }
+
+        public static StringRebuilder ChangeNewSubText(ITextChange change, int start, int length)
+        {
+            var textChange = change as TextChange;
+            if (textChange != null)
+                return textChange._newText.GetSubText(new Span(start, length));
+
+            var change3 = change as ITextChange3;
+            if (change3 != null)
+                return StringRebuilder.Create(change3.GetNewText(new Span(start, length)));
+
+            return StringRebuilder.Create(change.NewText.Substring(start, length));
+        }
+
+        public static string ChangeOldSubstring(ITextChange change, int start, int length)
+        {
+            var textChange = change as TextChange;
+            if (textChange != null)
+                return textChange._oldText.GetText(new Span(start, length));
+
+            var change3 = change as ITextChange3;
+            if (change3 != null)
+                return change3.GetOldText(new Span(start, length));
+
+            return change.OldText.Substring(start, length);
+        }
+
+        public static string ChangeNewSubstring(ITextChange change, int start, int length)
+        {
+            var textChange = change as TextChange;
+            if (textChange != null)
+                return textChange._newText.GetText(new Span(start, length));
+
+            var change3 = change as ITextChange3;
+            if (change3 != null)
+                return change3.GetNewText(new Span(start, length));
+
+            return change.NewText.Substring(start, length);
+        }
     }
 }

@@ -14,8 +14,10 @@ namespace Microsoft.VisualStudio.Text.Implementation
     using Microsoft.VisualStudio.Utilities;
     using Microsoft.VisualStudio.Text.Differencing;
     using Microsoft.VisualStudio.Text.Utilities;
+    using Microsoft.VisualStudio.Threading;
+    using System.Threading.Tasks;
 
-    internal abstract partial class BaseBuffer : ITextBuffer
+    internal abstract partial class BaseBuffer : ITextBuffer2
     {
         #region ITextEventRaiser Interface
         /// <summary>
@@ -221,7 +223,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
 
                 if (text.Length != 0)
                 {
-                    this.changes.Add(new TextChange(position, "", text, this.originSnapshot));
+                    this.changes.Add(TextChange.Create(position, string.Empty, text, this.originSnapshot));
                 }
                 return true;
             }
@@ -255,7 +257,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
 
                 if (length != 0)
                 {
-                    this.changes.Add(new TextChange(position, "", new string(characterBuffer, startIndex, length), this.originSnapshot));
+                    this.changes.Add(TextChange.Create(position, string.Empty, new string(characterBuffer, startIndex, length), this.originSnapshot));
                 }
                 return true;
             }
@@ -285,7 +287,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
 
                 if (charsToReplace != 0 || replaceWith.Length != 0)
                 {
-                    this.changes.Add(new TextChange(startPosition, DeletionChangeString(new Span(startPosition, charsToReplace)), new LiteralChangeString(replaceWith), this.originSnapshot));
+                    this.changes.Add(TextChange.Create(startPosition, DeletionChangeString(new Span(startPosition, charsToReplace)), replaceWith, this.originSnapshot));
                 }
                 return true;
             }
@@ -311,7 +313,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
 
                 if (replaceSpan.Length != 0 || replaceWith.Length != 0)
                 {
-                    this.changes.Add(new TextChange(replaceSpan.Start, DeletionChangeString(replaceSpan), new LiteralChangeString(replaceWith), this.originSnapshot));
+                    this.changes.Add(TextChange.Create(replaceSpan.Start, DeletionChangeString(replaceSpan), replaceWith, this.originSnapshot));
                 }
                 return true;
             }
@@ -337,7 +339,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
 
                 if (charsToDelete != 0)
                 {
-                    this.changes.Add(new TextChange(startPosition, DeletionChangeString(new Span(startPosition, charsToDelete)), ChangeString.EmptyChangeString, this.originSnapshot));
+                    this.changes.Add(TextChange.Create(startPosition, DeletionChangeString(new Span(startPosition, charsToDelete)), StringRebuilder.Empty, this.originSnapshot));
                 }
                 return true;
             }
@@ -359,14 +361,14 @@ namespace Microsoft.VisualStudio.Text.Implementation
 
                 if (deleteSpan.Length != 0)
                 {
-                    this.changes.Add(new TextChange(deleteSpan.Start, DeletionChangeString(deleteSpan), ChangeString.EmptyChangeString, this.originSnapshot));
+                    this.changes.Add(TextChange.Create(deleteSpan.Start, DeletionChangeString(deleteSpan), StringRebuilder.Empty, this.originSnapshot));
                 }
                 return true;
             }
 
-            private ChangeString DeletionChangeString(Span deleteSpan)
+            private StringRebuilder DeletionChangeString(Span deleteSpan)
             {
-                return ReferenceChangeString.CreateChangeString(this.originSnapshot, deleteSpan);
+                return BufferFactoryService.StringRebuilderFromSnapshotAndSpan(this.originSnapshot, deleteSpan);
             }
 
             /// <summary>
@@ -608,7 +610,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
             {
                 IContentType beforeContentType = baseBuffer.contentType;
                 this.baseBuffer.contentType = _newContentType;
-                this.baseBuffer.SetCurrentVersionAndSnapshot(NormalizedTextChangeCollection.Create(new FrugalList<TextChange>()));
+                this.baseBuffer.SetCurrentVersionAndSnapshot(NormalizedTextChangeCollection.Empty);
                 ITextEventRaiser raiser = new ContentTypeChangedEventRaiser(this.originSnapshot, baseBuffer.currentSnapshot, beforeContentType, baseBuffer.contentType, editTag);
                 this.baseBuffer.group.EnqueueEvents(raiser, this.baseBuffer);
                 raiser.RaiseEvent(this.baseBuffer, true);
@@ -634,7 +636,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
         private readonly Object syncLock = new Object();
         private Thread editThread;
         protected internal BufferGroup group;
-
+        protected internal StringRebuilder builder;
         protected internal BaseSnapshot currentSnapshot;
         protected TextVersion currentVersion;
         private FrugalList<IReadOnlyRegion> readOnlyRegions;
@@ -652,7 +654,8 @@ namespace Microsoft.VisualStudio.Text.Implementation
             Debug.Assert(contentType != null);
 
             this.contentType = contentType;
-            this.currentVersion = new TextVersion(this, 0, 0, initialLength);
+            this.currentVersion = new TextVersion(this, new TextImageVersion(initialLength));
+            // this.builder should be set in calling ctor
             this.textDifferencingService = textDifferencingService;
             this.guardedOperations = guardedOperations;
         }
@@ -685,11 +688,6 @@ namespace Microsoft.VisualStudio.Text.Implementation
         public ITextSnapshot CurrentSnapshot
         {
             get { return this.currentSnapshot; }
-        }
-
-        protected BaseSnapshot ProtectedCurrentSnapshot
-        {
-            set { this.currentSnapshot = value; }
         }
 
         protected TextVersion CurrentVersion
@@ -943,25 +941,30 @@ namespace Microsoft.VisualStudio.Text.Implementation
         #endregion
 
         #region Change Application and Eventing
-        protected void SetCurrentVersionAndSnapshot(INormalizedTextChangeCollection normalizedChanges, int reiteratedVersionNumber)
+        protected void SetCurrentVersionAndSnapshot(INormalizedTextChangeCollection normalizedChanges, int reiteratedVersionNumber = -1)
         {
-            this.currentVersion = this.currentVersion.CreateNext(normalizedChanges, reiteratedVersionNumber);
-            UpdateSnapshot();
-        }
-
-        protected void SetCurrentVersionAndSnapshot(INormalizedTextChangeCollection normalizedChanges)
-        {
-            this.currentVersion = this.currentVersion.CreateNext(normalizedChanges);
-            UpdateSnapshot();
-        }
-
-        protected void UpdateSnapshot()
-        {
+            this.currentVersion = this.currentVersion.CreateNext(normalizedChanges, newLength: -1, reiteratedVersionNumber: reiteratedVersionNumber);
+            this.builder = this.ApplyChangesToStringRebuilder(normalizedChanges, this.builder);
             this.currentSnapshot = TakeSnapshot();
         }
 
-        protected internal abstract ISubordinateTextEdit CreateSubordinateEdit(EditOptions options, int? reiteratedVersionNumber, object editTag);
+        public StringRebuilder ApplyChangesToStringRebuilder(INormalizedTextChangeCollection normalizedChanges, StringRebuilder source)
+        {
+            var doppelganger = this.GetDoppelgangerBuilder();
+            if (doppelganger != null)
+                return doppelganger;
 
+            for (int i = normalizedChanges.Count - 1; (i >= 0); --i)
+            {
+                ITextChange change = normalizedChanges[i];
+                source = source.Replace(change.OldSpan, TextChange.NewStringRebuilder(change));
+            }
+
+            return source;
+        }
+
+        protected internal abstract ISubordinateTextEdit CreateSubordinateEdit(EditOptions options, int? reiteratedVersionNumber, object editTag);
+        protected virtual StringRebuilder GetDoppelgangerBuilder() { return null; }
 
         public event EventHandler<TextContentChangingEventArgs> Changing;
 
@@ -970,6 +973,8 @@ namespace Microsoft.VisualStudio.Text.Implementation
         public event EventHandler<TextContentChangedEventArgs> ChangedLowPriority;
 
         public event EventHandler PostChanged;
+        public event EventHandler<TextContentChangedEventArgs> ChangedOnBackground;
+        private Task _lastChangeOnBackgroundRaisedEvent = TextUtilities.CompletedNonInliningTask;
 
         internal event EventHandler<TextContentChangedEventArgs> ChangedImmediate;
         internal event EventHandler<ContentTypeChangedEventArgs> ContentTypeChangedImmediate;
@@ -993,6 +998,7 @@ namespace Microsoft.VisualStudio.Text.Implementation
             EventHandler<TextContentChangedEventArgs> highHandler = ChangedHighPriority;
             EventHandler<TextContentChangedEventArgs> medHandler = Changed;
             EventHandler<TextContentChangedEventArgs> lowHandler = ChangedLowPriority;
+            EventHandler<TextContentChangedEventArgs> changedOnBackgroundHandler = ChangedOnBackground;
 
             BaseBuffer.eventDepth++;
             string indent = BaseBuffer.eventTracing ? new String(' ', 3 * (BaseBuffer.eventDepth - 1)) : null;
@@ -1003,6 +1009,36 @@ namespace Microsoft.VisualStudio.Text.Implementation
                     Debug.WriteLine(">>> " + indent + "High events from " + ToString());
                 }
                 this.guardedOperations.RaiseEvent(this, highHandler, args);
+            }
+            if (changedOnBackgroundHandler != null)
+            {
+                if (BaseBuffer.eventTracing)
+                {
+                    Debug.WriteLine(">>> " + indent + "background events from " + ToString());
+                }
+
+                // As this is a background event, we need to make sure handlers are executed synchronized
+                // and in the order the edits were applied.
+                // TODO: with this implementation any handler might delay all subsequent handlers.
+                // That's true for other Changed* events too, but this event is raised on a background thread
+                // so introducing delays in a handler won't be that easily noticable, also being on a
+                // background thread might suggest it's actually ok to perform some long running
+                // calculation directly in the  handler.
+                // For isolation purposes we need a chain of tasks per handler, or some other, more
+                // optimized isolation strategy. Tracked by #449694.
+                _lastChangeOnBackgroundRaisedEvent = _lastChangeOnBackgroundRaisedEvent
+                    .ContinueWith(_ =>
+                    {
+                        // changedOnBackgroundHandler might be stale at this point, get the latest list of handlers
+                        var currentChangedOnBackgroundHandler = ChangedOnBackground;
+                        if (currentChangedOnBackgroundHandler != null)
+                        {
+                            this.guardedOperations.RaiseEvent(this, currentChangedOnBackgroundHandler, args);
+                        }
+                    },
+                    CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+                // Now register pending task with task tracker to ensure it's completed when editor host is shutdown
+                this.guardedOperations.NonJoinableTaskTracker?.Register(_lastChangeOnBackgroundRaisedEvent);
             }
             if (medHandler != null)
             {

@@ -1,0 +1,106 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26324.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TextModelImpl", "TextModelImpl.csproj", "{9C5627EB-7EDC-4956-819F-4471EBBF4E68}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Chk_No_Opt|amd64 = Chk_No_Opt|amd64
+		Chk_No_Opt|Any CPU = Chk_No_Opt|Any CPU
+		Chk_No_Opt|arm = Chk_No_Opt|arm
+		Chk_No_Opt|x64 = Chk_No_Opt|x64
+		Chk_No_Opt|x86 = Chk_No_Opt|x86
+		Chk|amd64 = Chk|amd64
+		Chk|Any CPU = Chk|Any CPU
+		Chk|arm = Chk|arm
+		Chk|x64 = Chk|x64
+		Chk|x86 = Chk|x86
+		Debug|amd64 = Debug|amd64
+		Debug|Any CPU = Debug|Any CPU
+		Debug|arm = Debug|arm
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|amd64 = Release|amd64
+		Release|Any CPU = Release|Any CPU
+		Release|arm = Release|arm
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+		Ret_No_Opt|amd64 = Ret_No_Opt|amd64
+		Ret_No_Opt|Any CPU = Ret_No_Opt|Any CPU
+		Ret_No_Opt|arm = Ret_No_Opt|arm
+		Ret_No_Opt|x64 = Ret_No_Opt|x64
+		Ret_No_Opt|x86 = Ret_No_Opt|x86
+		Ret|amd64 = Ret|amd64
+		Ret|Any CPU = Ret|Any CPU
+		Ret|arm = Ret|arm
+		Ret|x64 = Ret|x64
+		Ret|x86 = Ret|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk_No_Opt|amd64.ActiveCfg = Chk_No_Opt|amd64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk_No_Opt|amd64.Build.0 = Chk_No_Opt|amd64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk_No_Opt|Any CPU.ActiveCfg = Chk_No_Opt|Any CPU
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk_No_Opt|Any CPU.Build.0 = Chk_No_Opt|Any CPU
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk_No_Opt|arm.ActiveCfg = Chk_No_Opt|arm
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk_No_Opt|arm.Build.0 = Chk_No_Opt|arm
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk_No_Opt|x64.ActiveCfg = Chk_No_Opt|x64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk_No_Opt|x64.Build.0 = Chk_No_Opt|x64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk_No_Opt|x86.ActiveCfg = Chk_No_Opt|x86
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk_No_Opt|x86.Build.0 = Chk_No_Opt|x86
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk|amd64.ActiveCfg = Chk|amd64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk|amd64.Build.0 = Chk|amd64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk|Any CPU.ActiveCfg = Chk|Any CPU
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk|Any CPU.Build.0 = Chk|Any CPU
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk|arm.ActiveCfg = Chk|arm
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk|arm.Build.0 = Chk|arm
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk|x64.ActiveCfg = Chk|x64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk|x64.Build.0 = Chk|x64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk|x86.ActiveCfg = Chk|x86
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Chk|x86.Build.0 = Chk|x86
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Debug|amd64.ActiveCfg = Debug|amd64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Debug|amd64.Build.0 = Debug|amd64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Debug|arm.ActiveCfg = Debug|arm
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Debug|arm.Build.0 = Debug|arm
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Debug|x64.ActiveCfg = Debug|x64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Debug|x64.Build.0 = Debug|x64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Debug|x86.ActiveCfg = Debug|x86
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Debug|x86.Build.0 = Debug|x86
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Release|amd64.ActiveCfg = Release|amd64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Release|amd64.Build.0 = Release|amd64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Release|arm.ActiveCfg = Release|arm
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Release|arm.Build.0 = Release|arm
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Release|x64.ActiveCfg = Release|x64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Release|x64.Build.0 = Release|x64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Release|x86.ActiveCfg = Release|x86
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Release|x86.Build.0 = Release|x86
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret_No_Opt|amd64.ActiveCfg = Ret_No_Opt|amd64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret_No_Opt|amd64.Build.0 = Ret_No_Opt|amd64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret_No_Opt|Any CPU.ActiveCfg = Ret_No_Opt|Any CPU
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret_No_Opt|Any CPU.Build.0 = Ret_No_Opt|Any CPU
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret_No_Opt|arm.ActiveCfg = Ret_No_Opt|arm
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret_No_Opt|arm.Build.0 = Ret_No_Opt|arm
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret_No_Opt|x64.ActiveCfg = Ret_No_Opt|x64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret_No_Opt|x64.Build.0 = Ret_No_Opt|x64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret_No_Opt|x86.ActiveCfg = Ret_No_Opt|x86
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret_No_Opt|x86.Build.0 = Ret_No_Opt|x86
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret|amd64.ActiveCfg = Ret|amd64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret|amd64.Build.0 = Ret|amd64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret|Any CPU.ActiveCfg = Ret|Any CPU
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret|Any CPU.Build.0 = Ret|Any CPU
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret|arm.ActiveCfg = Ret|arm
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret|arm.Build.0 = Ret|arm
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret|x64.ActiveCfg = Ret|x64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret|x64.Build.0 = Ret|x64
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret|x86.ActiveCfg = Ret|x86
+		{9C5627EB-7EDC-4956-819F-4471EBBF4E68}.Ret|x86.Build.0 = Ret|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

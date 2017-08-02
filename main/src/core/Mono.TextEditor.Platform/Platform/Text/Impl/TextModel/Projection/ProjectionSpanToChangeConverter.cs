@@ -57,10 +57,10 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
             foreach (Difference diff in diffs)
             {
                 pos += GetMatchSize(differ.DeletedSpans, diff.Before);
-                TextChange change = new TextChange(pos,
-                                                   ReferenceChangeString.CreateChangeString(differ.DeletedSpans, diff.Left),
-                                                   ReferenceChangeString.CreateChangeString(differ.InsertedSpans, diff.Right),
-                                                   this.currentSnapshot);
+                TextChange change = TextChange.Create(pos,
+                                                      BufferFactoryService.StringRebuilderFromSnapshotSpans(differ.DeletedSpans, diff.Left),
+                                                      BufferFactoryService.StringRebuilderFromSnapshotSpans(differ.InsertedSpans, diff.Right),
+                                                      this.currentSnapshot);
                 changes.Add(change);
                 pos += change.OldLength;
             }

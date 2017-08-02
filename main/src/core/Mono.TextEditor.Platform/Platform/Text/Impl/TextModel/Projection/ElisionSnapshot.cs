@@ -27,10 +27,11 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
 
         public ElisionSnapshot(ElisionBuffer elisionBuffer,
                                ITextSnapshot sourceSnapshot, 
-                               ITextVersion version, 
-                               ElisionMap content, 
+                               ITextVersion2 version,
+                               StringRebuilder builder,
+                               ElisionMap content,
                                bool fillInMappingMode)
-          : base(version)
+          : base(version, builder)
         {
             this.elisionBuffer = elisionBuffer;
             this.sourceSnapshot = sourceSnapshot;
@@ -153,35 +154,6 @@ namespace Microsoft.VisualStudio.Text.Projection.Implementation
         public override ReadOnlyCollection<SnapshotSpan> GetSourceSpans()
         {
             return GetSourceSpans(0, this.content.SpanCount);
-        }
-        #endregion
-
-        #region Line Methods
-        public override ITextSnapshotLine GetLineFromLineNumber(int lineNumber)
-        {
-            if (lineNumber < 0 || lineNumber >= this.totalLineCount)
-            {
-                throw new ArgumentOutOfRangeException("lineNumber");
-            }
-            return new TextSnapshotLine(this, this.content.GetLineExtentFromLineNumber(lineNumber, this.sourceSnapshot));
-        }
-
-        public override ITextSnapshotLine GetLineFromPosition(int position)
-        {
-            if (position < 0 || position > this.totalLength)
-            {
-                throw new ArgumentOutOfRangeException("position");
-            }
-            return new TextSnapshotLine(this, this.content.GetLineExtentFromPosition(position, this.sourceSnapshot));
-        }
-
-        public override int GetLineNumberFromPosition(int position)
-        {
-            if (position < 0 || position > this.totalLength)
-            {
-                throw new ArgumentOutOfRangeException("position");
-            }
-            return this.content.GetLineNumberFromPosition(position, this.sourceSnapshot);
         }
         #endregion
 
