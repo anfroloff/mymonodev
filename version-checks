@@ -17,17 +17,8 @@ DEP[0]=md-addins
 DEP_NAME[0]=MDADDINS
 DEP_PATH[0]=${top_srcdir}/../md-addins
 DEP_MODULE[0]=git@github.com:xamarin/md-addins.git
-<<<<<<< HEAD
-<<<<<<< HEAD
-DEP_NEEDED_VERSION[0]=b6d618b3f1538d25277d0c0949a719e58e57d7fb
-DEP_BRANCH_AND_REMOTE[0]="master origin/master"
-=======
-DEP_NEEDED_VERSION[0]=cec6e946bc2a049949515950fa9ec6423baee8c5
-=======
-DEP_NEEDED_VERSION[0]=29649121fb28b29147dc19320fe4c1c3ffa778b4
->>>>>>> Bump F# to 4.1.25
+DEP_NEEDED_VERSION[0]=e5a678de7caa8f11f090173a73ffb80ab2128f7a
 DEP_BRANCH_AND_REMOTE[0]="bump-fsharp origin/bump-fsharp"
->>>>>>> Bump F#
 
 # heap-shot
 DEP[1]=heap-shot
