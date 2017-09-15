@@ -9,6 +9,9 @@
     <Import_RootNamespace>Mono.TextEditor.Platform</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)IMonoDevelopContainedLanguageHost.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MonoDevelopContainedDocument.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MonoDevelopFormattingRuleFactoryServiceFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MyCSharpCompletionData.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MyCSharpCompletionDataProvider.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MyRoslynCompletionData.cs" />
