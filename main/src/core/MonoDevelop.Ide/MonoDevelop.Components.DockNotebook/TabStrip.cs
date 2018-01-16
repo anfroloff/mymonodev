@@ -606,7 +606,7 @@ namespace MonoDevelop.Components.DockNotebook
 				if (evnt.IsContextMenuButton ()) {
 					DockNotebook.ActiveNotebook = notebook;
 					notebook.CurrentTab = t;
-					notebook.DoPopupMenu (notebook, t.Index, evnt);
+					notebook.DoPopupMenu (notebook, t, evnt);
 					return true;
 				}
 				// Don't select the tab if we are clicking the close button
@@ -702,7 +702,7 @@ namespace MonoDevelop.Components.DockNotebook
 			IntPtr ptr = GLib.Marshaller.StructureToPtrAlloc (nativeEvent);
 			try {
 				Gdk.EventButton evnt = new Gdk.EventButton (ptr);
-				notebook.DoPopupMenu (notebook, tab.Index, evnt);
+				notebook.DoPopupMenu (notebook, tab, evnt);
 			} finally {
 				Marshal.FreeHGlobal (ptr);
 			}
@@ -1329,8 +1329,6 @@ namespace MonoDevelop.Components.DockNotebook
 			public TabContainer (TabStrip tabStrip)
 			{
 				this.tabStrip = tabStrip;
-
-
 			}
 
 			public void Remove (DockNotebookTab tab)
