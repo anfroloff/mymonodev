@@ -280,12 +280,6 @@ namespace MonoDevelop.Components.DockNotebook
 
 			tab.ContentChanged += OnTabContentChanged;
 
-			if (tab.IsPreview) {
-				previewTabs.Add (tab);
-			} else {
-				normalTabs.Add (tab);
-			}
-			
 			QueueResize ();
 
 			UpdateAccessibilityTabs ();
