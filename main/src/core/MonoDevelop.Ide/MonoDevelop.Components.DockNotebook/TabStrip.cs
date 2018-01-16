@@ -168,9 +168,6 @@ namespace MonoDevelop.Components.DockNotebook
 			// Handle focus for the tabs.
 			CanFocus = true;
 
-			previewTabContainer = new TabContainer (this, true);
-			tabContainer = new TabContainer (this, false);
-
 			tracker = new MouseTracker (this);
 			GtkWorkarounds.FixContainerLeak (this);
 
@@ -179,6 +176,10 @@ namespace MonoDevelop.Components.DockNotebook
 			Add (innerBox);
 
 			this.notebook = notebook;
+
+			previewTabContainer = new TabContainer (this, true);
+			tabContainer = new TabContainer (this, false);
+
 			WidgetFlags |= Gtk.WidgetFlags.AppPaintable;
 			Events |= EventMask.PointerMotionMask | EventMask.LeaveNotifyMask | EventMask.ButtonPressMask;
 
@@ -1044,8 +1045,8 @@ namespace MonoDevelop.Components.DockNotebook
 			var contentStartX = tabContainer.ContentStartX;
 			var contentEndX = tabContainer.ContentEndX;
 
-			var tabsData = CalculateTabs (tabContainer, GetRenderOffset (), false);
-			var tabsPreviewData = CalculateTabs (previewTabContainer, previewTabContainer.ContentStartX, true);
+			var tabsData = CalculateTabs (tabContainer, GetRenderOffset ());
+			var tabsPreviewData = CalculateTabs (previewTabContainer, previewTabContainer.ContentStartX);
 
 			// background image based in preview tabs
 			ctx.DrawImage (this, (previewTabContainer.Tabs.Count > 0 ? tabbarPreviewBackImage : tabbarBackImage).WithSize (allocation.Width, allocation.Height), 0, 0);
@@ -1086,7 +1087,7 @@ namespace MonoDevelop.Components.DockNotebook
 			}
 		}
 
-		(List<Action<Context>> DrawCommands, Action<Context> DrawActive, Gdk.Rectangle FocusRect) CalculateTabs (TabContainer container, int offsetX, bool isPreview)
+		(List<Action<Context>> DrawCommands, Action<Context> DrawActive, Gdk.Rectangle FocusRect) CalculateTabs (TabContainer container, int offsetX)
 		{
 			Action<Context> drawActive = null;
 			var drawCommands = new List<Action<Context>> ();
@@ -1096,11 +1097,7 @@ namespace MonoDevelop.Components.DockNotebook
 
 			int n = 0;
 
-			DockNotebookTab tab = null;
-			for (; n < notebook.Tabs.Count; n++) {
-
-				if (notebook.Tabs [n].IsPreview != isPreview)
-					continue;
+			for (; n < container.Tabs.Count; n++) {
 
 				if (offsetX + TabWidth < container.ContentStartX) {
 					offsetX += TabWidth;
@@ -1110,7 +1107,7 @@ namespace MonoDevelop.Components.DockNotebook
 				if (offsetX > container.ContentEndX)
 					break;
 
-				tab = notebook.Tabs [n];
+				var tab = container.Tabs [n];
 
 				int closingWidth;
 
@@ -1118,12 +1115,11 @@ namespace MonoDevelop.Components.DockNotebook
 				drawCommands.Add (cmd);
 				offsetX += closingWidth;
 
-
 				bool active = tab == notebook.CurrentTab;
 				bool focused = (n == currentFocusTab);
 
 				int width = Math.Min (TabWidth, Math.Max (50, container.ContentEndX - offsetX - 1));
-				if (tab == notebook.Tabs.Last ())
+				if (tab == container.Tabs.Last ())
 					width += LastTabWidthAdjustment;
 				width = (int)(width * tab.WidthModifier);
 
