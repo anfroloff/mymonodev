@@ -1025,8 +1025,6 @@ namespace MonoDevelop.Components.DockNotebook
 
 		int GetRenderOffset ()
 		{
-			return tabContainer.ContentStartX;
-
 			if (notebook.CurrentTab?.IsPreview ?? true) {
 				return tabContainer.ContentStartX;
 			}
