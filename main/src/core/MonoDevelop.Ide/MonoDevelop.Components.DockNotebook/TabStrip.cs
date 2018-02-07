@@ -1018,6 +1018,23 @@ namespace MonoDevelop.Components.DockNotebook
 			QueueDraw ();
 		}
 
+		public void UpdateTabWidth (int width, bool adjustLast = false)
+		{
+			if (notebook.NormalTabs.Any ())
+				TargetWidth = Clamp (width / notebook.NormalTabs.Count, 50, 200);
+
+			if (adjustLast) {
+				// adjust to align close buttons properly
+				LastTabWidthAdjustment = width - (TargetWidth * notebook.NormalTabs.Count) + 1;
+				LastTabWidthAdjustment = Math.Abs (LastTabWidthAdjustment) < 50 ? LastTabWidthAdjustment : 0;
+			} else {
+				LastTabWidthAdjustment = 0;
+			}
+
+			if (!IsRealized)
+				TabWidth = TargetWidth;
+		}
+
 		static int Clamp (int val, int min, int max)
 		{
 			return Math.Max (min, Math.Min (max, val));
@@ -1313,24 +1330,6 @@ namespace MonoDevelop.Components.DockNotebook
 			else if (!string.IsNullOrEmpty (tab.Text))
 				la.SetText (tab.Text);
 			return la;
-		}
-
-
-		public void UpdateTabWidth (int width, bool adjustLast = false)
-		{
-			if (notebook.NormalTabs.Any ())
-				TargetWidth = Clamp (width / notebook.NormalTabs.Count, 50, 200);
-			
-			if (adjustLast) {
-				// adjust to align close buttons properly
-				LastTabWidthAdjustment = width - (TargetWidth * notebook.NormalTabs.Count) + 1;
-				LastTabWidthAdjustment = Math.Abs (LastTabWidthAdjustment) < 50 ? LastTabWidthAdjustment : 0;
-			} else {
-				LastTabWidthAdjustment = 0;
-			}
-
-			if (!IsRealized)
-				TabWidth = TargetWidth;
 		}
 
 		class TabContainer
