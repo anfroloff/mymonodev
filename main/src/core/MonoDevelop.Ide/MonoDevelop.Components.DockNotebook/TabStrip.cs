@@ -1010,8 +1010,7 @@ namespace MonoDevelop.Components.DockNotebook
 			} else {
 				var tabClosed = closingTabs.FirstOrDefault (s => !notebook.GetReadOnlyCollectionForTab (s).Contains (s));
 				if (tabClosed != null) {
-					var container = tabClosed.IsPreview ? previewTabContainer : tabContainer;
-					UpdateTabWidth (tabClosed.Allocation.Right - container.ContentStartX, true);
+					UpdateTabWidth (tabContainer.Allocation.Right - tabContainer.ContentStartX, true);
 				}
 			}
 			QueueDraw ();
