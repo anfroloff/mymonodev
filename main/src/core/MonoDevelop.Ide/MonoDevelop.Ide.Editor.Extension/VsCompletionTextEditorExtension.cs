@@ -79,7 +79,7 @@ namespace MonoDevelop.Ide.Editor.Extension
 			} else if (textView.TextBuffer is IProjectionBuffer) {
 				isValidInContext = true;
 			} else {
-				isValidInContext = CompositionManager.GetExportedValue<IAsyncCompletionBroker> ().IsCompletionSupported (textView);
+				isValidInContext = CompositionManager.GetExportedValue<IAsyncCompletionBroker> ().IsCompletionSupported (textView.TextBuffer.ContentType);
 			}
 
 			return isValidInContext;
