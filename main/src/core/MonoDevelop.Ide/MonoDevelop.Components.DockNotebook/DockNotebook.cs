@@ -405,19 +405,10 @@ namespace MonoDevelop.Components.DockNotebook
 				tabStrip.StartCloseAnimation ((DockNotebookTab)tab);
 			pagesHistory.Remove (tab);
 
-			if (list.Count == 1) {
-				var otherTabs = GetCollection (!tab.IsPreview);
-				if (otherTabs.Count == 0) {
-					CurrentTab = null;
-				} else {
-					CurrentTab = otherTabs.Last ();
-				}
-
-			} else if (tab == CurrentTab) {
-				SelectLastActiveTab (tab);
-			}
-
 			list.Remove (tab);
+
+			SelectLastActiveTab (tab);
+
 			UpdateIndexes (list, tab.Index);
 
 			tabStrip.Update ();
