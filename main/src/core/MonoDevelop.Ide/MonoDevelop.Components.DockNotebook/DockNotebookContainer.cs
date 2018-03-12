@@ -130,7 +130,7 @@ namespace MonoDevelop.Components.DockNotebook
 			for (int n = 1; n < notebooks.Length; n++) {
 				var nb = notebooks [n];
 
-				var tabs = nb.AllTabs.ToArray ();
+				var tabs = nb.AllTabs.ToList ();
 				foreach (var tab in tabs) {
 					var window = (SdiWorkspaceWindow)tab.Content;
 					nb.RemoveTab (tab, false);

@@ -170,16 +170,7 @@ namespace MonoDevelop.Components.DockNotebook
 			set { tabStrip.NavigationButtonsVisible = value; }
 		}
 
-		public IEnumerable<DockNotebookTab> AllTabs {
-			get { 
-				foreach (var item in pagesCol) {
-					yield return item;
-				}
-				foreach (var item in previewPagesCol) {
-					yield return item;
-				}
-			}
-		}
+		public IEnumerable<DockNotebookTab> AllTabs => pagesCol.Concat (previewPagesCol);
 
 		public ReadOnlyCollection<DockNotebookTab> NormalTabs {
 			get { return pagesCol; }
@@ -433,11 +424,10 @@ namespace MonoDevelop.Components.DockNotebook
 
 		internal void ChangeTabToPreview (DockNotebookTab tab)
 		{
-			if (pages.Exists (s => s == tab)){
-				pages.Remove (tab);
+			pages.Remove (tab);
+			if (!previewPages.Exists (s => s == tab)) {
+				previewPages.Add (tab);
 			}
-
-			previewPages.Add (tab);
 
 			UpdateIndexes (pages, tab.Index);
 			UpdateIndexes (previewPages, 0);

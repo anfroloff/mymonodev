@@ -1349,7 +1349,7 @@ namespace MonoDevelop.Components.DockNotebook
 				}
 
 				for (int n = 0; n < Tabs.Count; n++) {
-					var tab = (DockNotebookTab)Tabs.ElementAt (n);
+					var tab = Tabs[n];
 					if (tab.Allocation.Contains (x, y))
 						return tab;
 				}
