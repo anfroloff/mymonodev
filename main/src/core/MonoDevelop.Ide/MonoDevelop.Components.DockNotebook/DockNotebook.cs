@@ -210,14 +210,20 @@ namespace MonoDevelop.Components.DockNotebook
 
 		void SelectLastActiveTab (DockNotebookTab lastClosed)
 		{
-			var container = GetCollection (lastClosed.IsPreview);
-			if (container.Count == 0) {
-				var otherTabs = GetCollection (!lastClosed.IsPreview);
-				if (otherTabs.Count == 0){
-					CurrentTab = null;
-				} else {
-					CurrentTab = otherTabs.Last ();
+			var collection = GetCollection (lastClosed.IsPreview);
+
+			if (pagesHistory.Count == 0) {
+				if (collection.Count > 0) {
+					CurrentTab = collection.Last ();
+					return;
 				}
+				var otherTabs = GetCollection (!lastClosed.IsPreview);
+				if (otherTabs.Count > 0) {
+					CurrentTab = otherTabs.Last ();
+					return;
+				} 
+
+				CurrentTab = null;
 				return;
 			}
 
@@ -227,10 +233,10 @@ namespace MonoDevelop.Components.DockNotebook
 			if (pagesHistory.Count > 0)
 				CurrentTab = pagesHistory [0];
 			else {
-				if (lastClosed.Index + 1 < container.Count)
-					CurrentTab = container [lastClosed.Index + 1];
+				if (lastClosed.Index + 1 < collection.Count)
+					CurrentTab = collection [lastClosed.Index + 1];
 				else
-					CurrentTab = container [lastClosed.Index - 1];
+					CurrentTab = collection [lastClosed.Index - 1];
 			}
 		}
 
