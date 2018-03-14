@@ -786,7 +786,16 @@ namespace MonoDevelop.Components.DockNotebook
 
 		FocusWidget GetNextWidgetToFocus (FocusWidget widget, DirectionType direction)
 		{
-			var currentFocusTabCollection = currentFocusTab == null ? notebook.NormalTabs : notebook.GetReadOnlyCollectionForTab (currentFocusTab);
+			System.Collections.ObjectModel.ReadOnlyCollection<DockNotebookTab> primaryTabCollection;
+			System.Collections.ObjectModel.ReadOnlyCollection<DockNotebookTab> secondaryTabCollection;
+
+			if (currentFocusTab == null || !currentFocusTab.IsPreview) {
+				primaryTabCollection = notebook.NormalTabs;
+				secondaryTabCollection = notebook.PreviewTabs;
+			} else {
+				primaryTabCollection = notebook.PreviewTabs;
+				secondaryTabCollection = notebook.NormalTabs;
+			}
 
 			switch (widget) {
 			case FocusWidget.BackButton:
@@ -795,8 +804,11 @@ namespace MonoDevelop.Components.DockNotebook
 				case DirectionType.Right:
 					if (NextButton.Sensitive && NextButton.Visible) {
 						return FocusWidget.NextButton;
-					} else if (currentFocusTabCollection.Count > 0) {
-						currentFocusTab = currentFocusTabCollection.FirstOrDefault ();
+					} else if (primaryTabCollection.Count > 0) {
+						currentFocusTab = primaryTabCollection[0];
+						return FocusWidget.Tabs;
+					} else if (secondaryTabCollection.Count > 0) {
+						currentFocusTab = secondaryTabCollection[0];
 						return FocusWidget.Tabs;
 					} else if (DropDownButton.Sensitive && DropDownButton.Visible) {
 						return FocusWidget.MenuButton;
@@ -814,8 +826,11 @@ namespace MonoDevelop.Components.DockNotebook
 				switch (direction) {
 				case DirectionType.TabForward:
 				case DirectionType.Right:
-					if (currentFocusTabCollection.Count > 0) {
-						currentFocusTab = currentFocusTabCollection.FirstOrDefault ();
+					if (primaryTabCollection.Count > 0) {
+						currentFocusTab = primaryTabCollection[0];
+						return FocusWidget.Tabs;
+					} else if (secondaryTabCollection.Count > 0) {
+						currentFocusTab = secondaryTabCollection[0];
 						return FocusWidget.Tabs;
 					} else if (DropDownButton.Sensitive && DropDownButton.Visible) {
 						return FocusWidget.MenuButton;
@@ -854,7 +869,11 @@ namespace MonoDevelop.Components.DockNotebook
 				case DirectionType.TabBackward:
 				case DirectionType.Left:
 					if (currentFocusTab.Index > 0) {
-						currentFocusTab = currentFocusTabCollection[currentFocusTab.Index-1];
+						currentFocusTab = primaryTabCollection[currentFocusTab.Index - 1];
+						currentFocusCloseButton = true;
+						return FocusWidget.TabCloseButton;
+					} else if (currentFocusTab.Index == 0 && secondaryTabCollection.Count > 0) {
+						currentFocusTab = secondaryTabCollection[secondaryTabCollection.Count - 1];
 						currentFocusCloseButton = true;
 						return FocusWidget.TabCloseButton;
 					} else if (NextButton.Sensitive && NextButton.Visible) {
@@ -875,8 +894,11 @@ namespace MonoDevelop.Components.DockNotebook
 				switch (direction) {
 				case DirectionType.TabForward:
 				case DirectionType.Right:
-					if (currentFocusTab.Index < currentFocusTabCollection.Count - 1) {
-						currentFocusTab = currentFocusTabCollection[currentFocusTab.Index+1];
+					if (currentFocusTab.Index < primaryTabCollection.Count - 1) {
+						currentFocusTab = primaryTabCollection[currentFocusTab.Index+1];
+						return FocusWidget.Tabs;
+					} else if (secondaryTabCollection.Count > 0) {
+						currentFocusTab = secondaryTabCollection[0];
 						return FocusWidget.Tabs;
 					} else if (DropDownButton.Sensitive && DropDownButton.Visible) {
 						currentFocusTab = null;
@@ -899,8 +921,12 @@ namespace MonoDevelop.Components.DockNotebook
 
 				case DirectionType.TabBackward:
 				case DirectionType.Left:
-					if (currentFocusTabCollection.Count > 0) {
-						currentFocusTab = currentFocusTabCollection[currentFocusTabCollection.Count-1];
+					if (primaryTabCollection.Count > 0) {
+						currentFocusTab = primaryTabCollection [primaryTabCollection.Count - 1];
+						currentFocusCloseButton = true;
+						return FocusWidget.TabCloseButton;
+					} else if (secondaryTabCollection.Count > 0) {
+						currentFocusTab = secondaryTabCollection [secondaryTabCollection.Count - 1];
 						currentFocusCloseButton = true;
 						return FocusWidget.TabCloseButton;
 					} else if (NextButton.Sensitive && NextButton.Visible) {
@@ -921,8 +947,11 @@ namespace MonoDevelop.Components.DockNotebook
 						return FocusWidget.BackButton;
 					} else if (NextButton.Sensitive && NextButton.Visible) {
 						return FocusWidget.NextButton;
-					} else if (currentFocusTabCollection.Count > 0) {
-						currentFocusTab = currentFocusTabCollection.FirstOrDefault ();
+					} else if (primaryTabCollection.Count > 0) {
+						currentFocusTab = primaryTabCollection[0];
+						return FocusWidget.Tabs;
+					} else if (secondaryTabCollection.Count > 0) {
+						currentFocusTab = secondaryTabCollection[0];
 						return FocusWidget.Tabs;
 					} else if (DropDownButton.Sensitive && DropDownButton.Visible) {
 						return FocusWidget.MenuButton;
@@ -934,8 +963,12 @@ namespace MonoDevelop.Components.DockNotebook
 				case DirectionType.Left:
 					if (DropDownButton.Sensitive && DropDownButton.Visible) {
 						return FocusWidget.MenuButton;
-					} else if (currentFocusTabCollection.Count > 0) {
-						currentFocusTab = currentFocusTabCollection[currentFocusTabCollection.Count - 1];
+					} else if (primaryTabCollection.Count > 0) {
+						currentFocusTab = primaryTabCollection[primaryTabCollection.Count - 1];
+						currentFocusCloseButton = true;
+						return FocusWidget.TabCloseButton;
+					} else if (secondaryTabCollection.Count > 0) {
+						currentFocusTab = secondaryTabCollection [secondaryTabCollection.Count - 1];
 						currentFocusCloseButton = true;
 						return FocusWidget.TabCloseButton;
 					} else if (NextButton.Sensitive && NextButton.Visible) {
