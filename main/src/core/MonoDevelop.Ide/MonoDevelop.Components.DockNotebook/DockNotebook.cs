@@ -426,6 +426,8 @@ namespace MonoDevelop.Components.DockNotebook
 				previewPages.Add (tab);
 			}
 
+			tab.IsPreview = true;
+
 			UpdateIndexes (pages, tab.Index);
 			UpdateIndexes (previewPages, 0);
 		}

@@ -312,9 +312,9 @@ namespace MonoDevelop.Components.DockNotebook
 		void OnTabContentChanged (object sender, EventArgs args)
 		{
 			var tab = (DockNotebookTab)sender;
-			if (tab.IsPreview) {
+			if ((tab.Content as Ide.Gui.SdiWorkspaceWindow)?.ViewContent.IsPreviewTab ?? false) {
 				notebook.ChangeTabToPreview (tab); 
-			} 
+			}
 		}
 
 		void PageReorderedHandler (DockNotebookTab tab, int oldPlacement, int newPlacement)
