@@ -210,6 +210,11 @@ namespace MonoDevelop.Components.DockNotebook
 
 		void SelectLastActiveTab (DockNotebookTab lastClosed)
 		{
+			if (pages.Count == 0 && previewPages.Count == 0) {
+				CurrentTab = null;
+				return;
+			}
+
 			var collection = GetCollection (lastClosed.IsPreview);
 
 			if (pagesHistory.Count == 0) {
