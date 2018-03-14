@@ -1301,10 +1301,19 @@ namespace MonoDevelop.Ide.Gui
 		{
 			if (DockNotebook.ActiveNotebook == null)
 				return;
-			
-			if (number >= DockNotebook.ActiveNotebook.NormalTabCount || number < 0)
+			if (number >= DockNotebook.ActiveNotebook.AllTabCount || number < 0)
 				return;
-			var window = DockNotebook.ActiveNotebook.NormalTabs [number].Content as IWorkbenchWindow;
+
+			System.Collections.ObjectModel.ReadOnlyCollection<DockNotebookTab> tabs = null;
+
+			if (number < DockNotebook.ActiveNotebook.NormalTabCount) {
+				tabs = DockNotebook.ActiveNotebook.NormalTabs;
+			} else {
+				number = number - DockNotebook.ActiveNotebook.NormalTabCount;
+				tabs = DockNotebook.ActiveNotebook.PreviewTabs;
+			}
+
+			var window = tabs [number].Content as IWorkbenchWindow;
 			if (window != null)
 				window.SelectWindow ();
 		}
