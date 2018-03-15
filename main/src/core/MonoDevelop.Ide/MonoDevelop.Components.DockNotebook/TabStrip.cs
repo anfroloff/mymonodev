@@ -868,11 +868,11 @@ namespace MonoDevelop.Components.DockNotebook
 
 				case DirectionType.TabBackward:
 				case DirectionType.Left:
-					if (currentFocusTab.Index > 0) {
+					if (currentFocusTab != null && currentFocusTab.Index > 0) {
 						currentFocusTab = primaryTabCollection[currentFocusTab.Index - 1];
 						currentFocusCloseButton = true;
 						return FocusWidget.TabCloseButton;
-					} else if (currentFocusTab.Index == 0 && secondaryTabCollection.Count > 0) {
+					} else if (currentFocusTab != null && currentFocusTab.Index == 0 && secondaryTabCollection.Count > 0) {
 						currentFocusTab = secondaryTabCollection[secondaryTabCollection.Count - 1];
 						currentFocusCloseButton = true;
 						return FocusWidget.TabCloseButton;
@@ -894,7 +894,7 @@ namespace MonoDevelop.Components.DockNotebook
 				switch (direction) {
 				case DirectionType.TabForward:
 				case DirectionType.Right:
-					if (currentFocusTab.Index < primaryTabCollection.Count - 1) {
+					if (currentFocusTab != null && currentFocusTab.Index < primaryTabCollection.Count - 1) {
 						currentFocusTab = primaryTabCollection[currentFocusTab.Index+1];
 						return FocusWidget.Tabs;
 					} else if (secondaryTabCollection.Count > 0) {
