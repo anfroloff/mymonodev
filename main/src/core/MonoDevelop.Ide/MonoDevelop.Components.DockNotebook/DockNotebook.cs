@@ -39,7 +39,7 @@ using System.Linq;
 
 namespace MonoDevelop.Components.DockNotebook
 {
-	delegate void TabsReorderedHandler (DockNotebookTab tab, int oldPlacement, int newPlacement);
+	delegate void TabsReorderedHandler (DockNotebookTab oldPlacement, DockNotebookTab newPlacement);
 
 	class DockNotebook : Gtk.VBox
 	{
@@ -451,7 +451,7 @@ namespace MonoDevelop.Components.DockNotebook
 				container.RemoveAt (tab.Index);
 			}
 			if (TabsReordered != null) {
-				TabsReordered (tab, tab.Index, targetPos);
+				TabsReordered (tab, targetTab);
 			}
 			UpdateIndexes (container, Math.Min (tab.Index, targetPos));
 			tabStrip.Update ();

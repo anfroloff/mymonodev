@@ -317,7 +317,7 @@ namespace MonoDevelop.Components.DockNotebook
 			}
 		}
 
-		void PageReorderedHandler (DockNotebookTab tab, int oldPlacement, int newPlacement)
+		void PageReorderedHandler (DockNotebookTab oldPlacement, DockNotebookTab newPlacement)
 		{
 			QueueResize ();
 

@@ -1314,8 +1314,22 @@ namespace MonoDevelop.Ide.Gui
 			workbench.ReorderTab (oldPlacement, newPlacement);
 		}
 
-		internal void ReorderDocuments (int oldPlacement, int newPlacement)
+		int GetIndex (DockNotebookTab oldPlacement) 
 		{
+			var viewContent = ((SdiWorkspaceWindow)oldPlacement.Content).ViewContent;
+			for (int i = 0; i < workbench.InternalViewContentCollection.Count; i++) {
+				if (viewContent == workbench.InternalViewContentCollection[i]){
+					return i;
+				}
+			}
+			return -1;
+		}
+
+		internal void ReorderDocuments (DockNotebookTab oldPlacementTab, DockNotebookTab newPlacementTab)
+		{
+			var oldPlacement = GetIndex (oldPlacementTab);
+			var newPlacement = GetIndex (newPlacementTab);
+
 			ViewContent content = workbench.InternalViewContentCollection[oldPlacement];
 			workbench.InternalViewContentCollection.RemoveAt (oldPlacement);
 			workbench.InternalViewContentCollection.Insert (newPlacement, content);

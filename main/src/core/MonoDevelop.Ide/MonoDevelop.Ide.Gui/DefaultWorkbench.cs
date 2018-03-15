@@ -1134,7 +1134,7 @@ namespace MonoDevelop.Ide.Gui
 			IdeApp.CommandService.ShowContextMenu (notebook, evt, entrySet, notebook.CurrentTab.Content);
 		}
 		
-		internal void OnTabsReordered (DockNotebookTab widget, int oldPlacement, int newPlacement)
+		internal void OnTabsReordered (DockNotebookTab oldPlacement, DockNotebookTab newPlacement)
 		{
 			IdeApp.Workbench.ReorderDocuments (oldPlacement, newPlacement);
 		}
