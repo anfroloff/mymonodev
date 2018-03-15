@@ -1301,7 +1301,7 @@ namespace MonoDevelop.Ide.Gui
 		{
 			if (DockNotebook.ActiveNotebook == null)
 				return;
-			if (number >= DockNotebook.ActiveNotebook.AllTabCount || number < 0)
+			if (number >= DockNotebook.ActiveNotebook.TabCount || number < 0)
 				return;
 
 			System.Collections.ObjectModel.ReadOnlyCollection<DockNotebookTab> tabs = null;

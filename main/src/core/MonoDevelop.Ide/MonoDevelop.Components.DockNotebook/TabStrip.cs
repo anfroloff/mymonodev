@@ -242,7 +242,7 @@ namespace MonoDevelop.Components.DockNotebook
 				}
 			};
 			
-			foreach (var tab in notebook.AllTabs) {
+			foreach (var tab in notebook.Tabs) {
 				if (tab.Accessible != null) {
 					Accessible.AddAccessibleElement (tab.Accessible);
 
@@ -326,7 +326,7 @@ namespace MonoDevelop.Components.DockNotebook
 
 		void UpdateAccessibilityTabs ()
 		{
-			var tabs = notebook.AllTabs
+			var tabs = notebook.Tabs
 			                   .Where (x => x.Accessible != null)
 			                   .OrderBy (x => x.Index)
 			                   .Select (x => x.Accessible)

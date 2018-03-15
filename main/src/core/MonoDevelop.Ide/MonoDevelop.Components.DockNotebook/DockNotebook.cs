@@ -170,7 +170,7 @@ namespace MonoDevelop.Components.DockNotebook
 			set { tabStrip.NavigationButtonsVisible = value; }
 		}
 
-		public IEnumerable<DockNotebookTab> AllTabs => pagesCol.Concat (previewPagesCol);
+		public IEnumerable<DockNotebookTab> Tabs => pagesCol.Concat (previewPagesCol);
 
 		public ReadOnlyCollection<DockNotebookTab> NormalTabs {
 			get { return pagesCol; }
@@ -249,7 +249,7 @@ namespace MonoDevelop.Components.DockNotebook
 			get { return pages.Count; }
 		}
 
-		public int AllTabCount {
+		public int TabCount {
 			get { return NormalTabCount + PreviewTabCount; }
 		}
 
