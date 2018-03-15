@@ -376,8 +376,12 @@ namespace MonoDevelop.Components.DockNotebook
 
 		protected override void OnSizeAllocated (Gdk.Rectangle allocation)
 		{
-			previewTabContainer.ContentWidth = notebook.PreviewTabs.Count * TabWidth;
-			previewTabContainer.ContentStartX = previewTabContainer.ContentWidth == 0 ? allocation.Width : allocation.Width - RightBarPadding - previewTabContainer.ContentWidth;
+			UpdateTabWidth (allocation.Width - LeftBarPadding - HalfLeanWidth - RightBarPadding);
+			TabWidth = TargetWidth;
+
+			var previewContainerWidth = notebook.PreviewTabs.Count * TabWidth;
+			previewTabContainer.ContentStartX = previewContainerWidth == 0 ? allocation.Width : allocation.Width - RightBarPadding - previewContainerWidth;
+			previewTabContainer.ContentWidth = previewContainerWidth;
 
 			if (NavigationButtonsVisible) {
 				tabContainer.ContentStartX = /*allocation.X +*/ LeftBarPadding + HalfLeanWidth;
@@ -387,7 +391,6 @@ namespace MonoDevelop.Components.DockNotebook
 			tabContainer.ContentWidth = previewTabContainer.ContentStartX - (previewTabContainer.ContentWidth == 0 ? RightBarPadding : LeanWidth) - tabContainer.ContentStartX;
 
 			base.OnSizeAllocated (allocation);
-			Update ();
 		} 
 
 		protected override void OnSizeRequested (ref Requisition requisition)
@@ -1039,11 +1042,11 @@ namespace MonoDevelop.Components.DockNotebook
 		public void Update ()
 		{
 			if (!tracker.Hovered) {
-				UpdateTabWidth (tabContainer.ContentEndX - tabContainer.ContentStartX);
+				UpdateTabWidth (previewTabContainer.ContentEndX - tabContainer.ContentStartX);
 			} else {
 				var tabClosed = closingTabs.FirstOrDefault (s => !notebook.GetReadOnlyCollectionForTab (s).Contains (s));
 				if (tabClosed != null) {
-					UpdateTabWidth (tabContainer.Allocation.Right - tabContainer.ContentStartX, true);
+					UpdateTabWidth (previewTabContainer.ContentEndX - tabContainer.ContentStartX, true);
 				}
 			}
 			QueueDraw ();
@@ -1051,15 +1054,13 @@ namespace MonoDevelop.Components.DockNotebook
 
 		public void UpdateTabWidth (int width, bool adjustLast = false)
 		{
-			if (notebook.NormalTabs.Count > 0) {
-				TargetWidth = Clamp (width / notebook.NormalTabs.Count, 50, 200);
-			} else if (notebook.PreviewTabs.Count > 0) {
-				TargetWidth = Clamp (width / notebook.PreviewTabs.Count, 50, 200);
+			if (notebook.TabCount > 0) {
+				TargetWidth = Clamp (width / notebook.TabCount, 50, 200);
 			} 
 				
 			if (adjustLast) {
 				// adjust to align close buttons properly
-				LastTabWidthAdjustment = width - (TargetWidth * notebook.NormalTabs.Count) + 1;
+				LastTabWidthAdjustment = width - (TargetWidth * notebook.TabCount) + 1;
 				LastTabWidthAdjustment = Math.Abs (LastTabWidthAdjustment) < 50 ? LastTabWidthAdjustment : 0;
 			} else {
 				LastTabWidthAdjustment = 0;
@@ -1076,14 +1077,13 @@ namespace MonoDevelop.Components.DockNotebook
 
 		int GetRenderOffset ()
 		{
-			if (notebook.CurrentTab?.IsPreview ?? true) {
-				return tabContainer.ContentStartX;
-			}
-			if (notebook.CurrentTab.Index >= 0) {
-				int normalizedArea = (tabContainer.ContentWidth / TargetWidth) * TargetWidth;
+			//In case our current tab is preview we need to use last render offset
+			if (!(notebook.CurrentTab?.IsPreview ?? true) && notebook.CurrentTab.Index >= 0) {
+				int tabArea = tabContainer.ContentWidth + RightBarPadding + RightBarPadding;
+				int normalizedArea = (tabArea / TargetWidth) * TargetWidth;
 				int maxOffset = Math.Max (0, (tabContainer.Tabs.Count * TargetWidth) - normalizedArea);
 
-				int distanceToTabEdge = tabContainer.ContentWidth * notebook.CurrentTab.Index;
+				int distanceToTabEdge = TargetWidth * notebook.CurrentTab.Index;
 				int window = normalizedArea - TargetWidth;
 				targetOffset = Math.Min (maxOffset, Clamp (renderOffset, distanceToTabEdge - window, distanceToTabEdge));
 
@@ -1122,13 +1122,14 @@ namespace MonoDevelop.Components.DockNotebook
 		void Draw (Context ctx)
 		{
 			var allocation = Allocation;
-			var tabArea = tabContainer.ContentWidth + previewTabContainer.ContentWidth;
-
+		
 			var contentStartX = tabContainer.ContentStartX;
 			var contentEndX = tabContainer.ContentEndX;
 
+			var tabArea = previewTabContainer.ContentEndX - contentStartX;
+
 			// background image based in preview tabs
-			ctx.DrawImage (this, (previewTabContainer.Tabs.Count > 0 ? tabbarPreviewBackImage : tabbarBackImage).WithSize (allocation.Width, allocation.Height), 0, 0);
+			ctx.DrawImage (this, (notebook.PreviewTabCount > 0 ? tabbarPreviewBackImage : tabbarBackImage).WithSize (allocation.Width, allocation.Height), 0, 0);
 
 			//Draw container background
 			//ctx.SetSourceColor (new Cairo.Color (0, 0.2, 0.3));
