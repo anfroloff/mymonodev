@@ -721,7 +721,7 @@ namespace MonoDevelop.Components.DockNotebook
 
 			if (currentFocusCloseButton) {
 
-				var tab = notebook.CurrentTab;
+				var tab = currentFocusTab;
 
 				//var index = tab.Idex
 				notebook.OnCloseTab (tab);
