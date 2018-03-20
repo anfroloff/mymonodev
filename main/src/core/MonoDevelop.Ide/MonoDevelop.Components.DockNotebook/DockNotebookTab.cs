@@ -47,7 +47,7 @@ namespace MonoDevelop.Components.DockNotebook
 		Xwt.Drawing.Image icon;
 		Widget content;
 
-        Gdk.Rectangle allocation;
+		Gdk.Rectangle allocation;
 		internal Gdk.Rectangle Allocation {
 			get {
 				return allocation;

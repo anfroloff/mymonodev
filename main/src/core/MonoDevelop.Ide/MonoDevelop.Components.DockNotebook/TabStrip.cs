@@ -312,7 +312,7 @@ namespace MonoDevelop.Components.DockNotebook
 		void OnTabContentChanged (object sender, EventArgs args)
 		{
 			var tab = (DockNotebookTab)sender;
-			if ((tab.Content as Ide.Gui.SdiWorkspaceWindow)?.ViewContent.IsPreviewTab ?? false) {
+			if (tab.Content is Ide.Gui.SdiWorkspaceWindow wnd && wnd.ViewContent.IsPreviewTab) {
 				notebook.ChangeTabToPreview (tab); 
 			}
 		}
@@ -731,7 +731,7 @@ namespace MonoDevelop.Components.DockNotebook
 
 				var tabCollection = notebook.GetReadOnlyCollectionForTab (tab);
 
-				currentFocusTab = tab.Index > 0 ? tabCollection[tab.Index-1] : (DockNotebookTab)null;
+				currentFocusTab = tab.Index > 0 ? tabCollection[tab.Index - 1] : (DockNotebookTab)null;
 
 				currentFocusCloseButton = true;
 

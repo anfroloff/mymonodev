@@ -45,7 +45,7 @@ namespace MonoDevelop.Components.DockNotebook
 	{
 		List<DockNotebookTab> pages = new List<DockNotebookTab> ();
 		List<DockNotebookTab> previewPages = new List<DockNotebookTab> ();
-		List <DockNotebookTab> pagesHistory = new List<DockNotebookTab> ();
+		List<DockNotebookTab> pagesHistory = new List<DockNotebookTab> ();
 		TabStrip tabStrip;
 		Gtk.EventBox contentBox;
 		ReadOnlyCollection<DockNotebookTab> pagesCol;
@@ -381,7 +381,7 @@ namespace MonoDevelop.Components.DockNotebook
 		void UpdateIndexes (List<DockNotebookTab> tabs, int startIndex)
 		{
 			for (int n = startIndex; n < tabs.Count; n++)
-				((DockNotebookTab)tabs [n]).Index = n;
+				tabs [n].Index = n;
 		}
 
 		public DockNotebookTab GetTab (int n)
