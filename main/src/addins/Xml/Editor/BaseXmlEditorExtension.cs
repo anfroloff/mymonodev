@@ -500,8 +500,35 @@ namespace MonoDevelop.Xml.Editor
 				if (!listWindow.AutoSelect && char.IsLetterOrDigit (descriptor.KeyChar)) {
 					listWindow.AutoSelect = true;
 				}
+				if (XmlEditorOptions.AutoInsertFragments && (descriptor.KeyChar == '=' || descriptor.KeyChar == '"')) {
+					keyAction = KeyActions.CloseWindow | KeyActions.Complete | KeyActions.Ignore;
+					return true;
+				}
+				if (XmlEditorOptions.AutoInsertFragments && descriptor.KeyChar == '/') {
+					keyAction = KeyActions.CloseWindow;
+					return true;
+				}
 				keyAction = KeyActions.None;
 				return false;
+			}
+		}
+
+		class XmlClosingTagHandler : ICompletionKeyHandler
+		{
+			public bool PreProcessKey (CompletionListWindow listWindow, KeyDescriptor descriptor, out KeyActions keyAction)
+			{
+				keyAction = KeyActions.None;
+				return false;
+			}
+
+			public bool PostProcessKey (CompletionListWindow listWindow, KeyDescriptor descriptor, out KeyActions keyAction)
+			{
+				//This completion only appears right after <Element> is typed
+				//and is used to show </Element> completion, user can either confirm(Return/Tab keys) this completion
+				//or just start typing inner content of element, in which case we want current completion to be aborted
+				//so we always want to CloseWindow action in PostProcess.
+				keyAction = KeyActions.CloseWindow;
+				return true;
 			}
 		}
 
@@ -515,6 +542,7 @@ namespace MonoDevelop.Xml.Editor
 			if (el != null && el.Region.End >= currentLocation && !el.IsClosed && el.IsNamed) {
 				string tag = String.Concat ("</", el.Name.FullName, ">");
 				var cp = new CompletionDataList ();
+				cp.AddKeyHandler (new XmlClosingTagHandler ());
 				cp.Add (new XmlTagCompletionData (tag, 0, true));
 				return cp;
 			}

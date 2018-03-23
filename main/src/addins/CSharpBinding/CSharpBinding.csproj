@@ -1,4 +1,4 @@
-﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <Import Project="..\..\..\MonoDevelop.props" />
   <Import Project="$(ReferencesVSEditor)" />
   <Import Project="$(ReferencesRoslyn)" />
@@ -109,6 +109,11 @@
       <Name>ICSharpCode.NRefactory.Cecil</Name>
       <Private>False</Private>
     </ProjectReference>
+    <ProjectReference Include="..\MonoDevelop.SourceEditor2\MonoDevelop.SourceEditor.csproj">
+      <Project>{F8F92AA4-A376-4679-A9D4-60E7B7FBF477}</Project>
+      <Name>MonoDevelop.SourceEditor</Name>
+      <Private>False</Private>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -147,6 +152,10 @@
     </Reference>
     <Reference Include="System.ValueTuple">
       <HintPath>..\..\..\packages\System.ValueTuple.4.4.0\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.VisualStudio.CodingConventions">
+      <HintPath>..\..\..\build\bin\Microsoft.VisualStudio.CodingConventions.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
@@ -218,7 +227,6 @@
     <Compile Include="MonoDevelop.CSharp\CSharpEnhancedCodeProvider.cs" />
     <Compile Include="MonoDevelop.CSharp.Formatting\Indent.cs" />
     <Compile Include="MonoDevelop.CSharp.Formatting\OnTheFlyFormatter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\HighlightUsagesExtension.cs" />
     <Compile Include="MonoDevelop.CSharp.Highlighting\MoveToUsagesHandler.cs" />
     <Compile Include="MonoDevelop.CSharp.Formatting\CSharpFormattingPolicyPanelWidget.cs" />
     <Compile Include="gtk-gui\MonoDevelop.CSharp.Formatting.CSharpFormattingPolicyPanelWidget.cs" />
@@ -301,17 +309,6 @@
     <Compile Include="MonoDevelop.CSharp.Features\Formatter\Indent.cs" />
     <Compile Include="MonoDevelop.CSharp\DeclaredSymbolInfo.cs" />
     <Compile Include="MonoDevelop.CSharp\ProjectSearchCategory.cs" />
-    <Compile Include="Razor\ContainedDocumentPreserveFormattingRule.cs" />
-    <Compile Include="Razor\IMonoDevelopContainedLanguageHost.cs" />
-    <Compile Include="Razor\IMyRoslynCompletionDataProvider.cs" />
-    <Compile Include="Razor\MonoDevelopContainedDocument.cs" />
-    <Compile Include="Razor\MonoDevelopFormattingRuleFactoryServiceFactory.cs" />
-    <Compile Include="Razor\MyCSharpCompletionData.cs" />
-    <Compile Include="Razor\MyCSharpCompletionDataProvider.cs" />
-    <Compile Include="Razor\MyRoslynCompletionData.cs" />
-    <Compile Include="Razor\RoslynCommandTarget.cs" />
-    <Compile Include="Razor\RoslynCompletionPresenter.cs" />
-    <Compile Include="Razor\RoslynCompletionPresenterSession.cs" />
     <Compile Include="Util\7BitEncodedInts.cs" />
     <Compile Include="Util\ArgumentSyntaxExtensions.cs" />
     <Compile Include="Util\CloneableStack.cs" />
@@ -351,26 +348,6 @@
     <Compile Include="MonoDevelop.CSharp.Navigation\FindBaseSymbolsHandler.cs" />
     <Compile Include="MonoDevelop.CSharp.Navigation\FindImplementingMembersHandler.cs" />
     <Compile Include="MonoDevelop.CSharp.Refactoring\ConstructFixer.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\AbstractKeywordHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\AbstractAsyncHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\AsyncAnonymousMethodHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\AsyncMethodHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\AsyncParenthesizedLambdaHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\AsyncSimpleLambdaHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\AwaitHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\CheckedExpressionHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\CheckedStatementHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\ConditionalPreprocessorHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\IfStatementHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\LockStatementHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\LoopHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\RegionHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\ReturnStatementHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\SwitchStatementHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\TryStatementHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\UnsafeStatementHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\UsingStatementHighlighter.cs" />
-    <Compile Include="MonoDevelop.CSharp.Highlighting\KeywordHighlighters\YieldStatementHighlighter.cs" />
     <Compile Include="MonoDevelop.CSharp.Features\GotoDefinition\GotoDefinitionHelpers.cs" />
     <Compile Include="MonoDevelop.CSharp.Features\GotoDefinition\GotoDefinitionService.cs" />
     <Compile Include="Util\PortingExtensions.cs" />
@@ -385,6 +362,25 @@
     <Compile Include="MonoDevelop.CSharp.Completion\CSharpCompletionData.cs" />
     <Compile Include="MonoDevelop.CSharp.Completion\CompletionProvider\ProtocolMemberCompletionProvider.cs" />
     <Compile Include="MonoDevelop.CSharp.Tooltips\QuickInfoProvider.cs" />
+    <Compile Include="MonoDevelop.CSharp.Highlighting\HighlightUsagesExtension.cs" />
+    <Compile Include="MonoDevelop.CSharp.OptionProvider\OptionProviderFactory.cs" />
+    <Compile Include="MonoDevelop.CSharp.OptionProvider\CSharpDocumentOptionsProvider.cs" />
+    <Compile Include="MonoDevelop.CSharp.Navigation\Counters.cs" />
+    <Compile Include="MonoDevelop.CSharp.Project\CSharpLanguageVersionHelper.cs" />
+    <Compile Include="MonoDevelop.CSharp\DocumentContextExtension.cs" />
+    <Compile Include="MonoDevelop.Ide.Completion.Presentation\RoslynCompletionPresenter.cs" />
+    <Compile Include="MonoDevelop.Ide.Completion.Presentation\RoslynCompletionPresenterSession.ICompletionPresenterSession.cs" />
+    <Compile Include="MonoDevelop.Ide.Completion.Presentation\ContainedDocumentPreserveFormattingRule.cs" />
+    <Compile Include="MonoDevelop.Ide.Completion.Presentation\IMonoDevelopContainedLanguageHost.cs" />
+    <Compile Include="MonoDevelop.Ide.Completion.Presentation\IMyRoslynCompletionDataProvider.cs" />
+    <Compile Include="MonoDevelop.Ide.Completion.Presentation\MonoDevelopContainedDocument.cs" />
+    <Compile Include="MonoDevelop.Ide.Completion.Presentation\MonoDevelopFormattingRuleFactoryServiceFactory.cs" />
+    <Compile Include="MonoDevelop.Ide.Completion.Presentation\MyCSharpCompletionData.cs" />
+    <Compile Include="MonoDevelop.Ide.Completion.Presentation\MyCSharpCompletionDataProvider.cs" />
+    <Compile Include="MonoDevelop.Ide.Completion.Presentation\MyRoslynCompletionData.cs" />
+    <Compile Include="MonoDevelop.Ide.Completion.Presentation\RoslynCommandTarget.cs" />
+    <Compile Include="MonoDevelop.Ide.Completion.Presentation\RoslynCompletionPresenterSession.View.cs" />
+    <Compile Include="MonoDevelop.Ide.Completion.Presentation\RoslynCompletionPresenterSession.IIntelliSensePresenterSession.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Makefile.am" />
@@ -405,7 +401,7 @@
     <InternalsVisibleTo Include="WebToolingAddin" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="MonoDevelop.CSharp.Features\LineSeparators\" />
+    <Folder Include="MonoDevelop.Ide.Completion.Presentation\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
  </Project>

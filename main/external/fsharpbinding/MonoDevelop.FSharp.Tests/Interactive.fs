@@ -22,11 +22,13 @@ module Interactive =
         async {
             let (/) a b = Path.Combine(a,b)
             let testDllFolder = Assembly.GetExecutingAssembly().Location |> Path.GetDirectoryName
-            let pathToExe = "\"" + testDllFolder/".."/".."/".."/".."/".."/"build"/"AddIns"/"FSharpBinding"/"MonoDevelop.FSharpInteractive.Service.exe\""
+
+            let pathToExe = "\"" + testDllFolder/"MonoDevelop.FSharpInteractive.Service.exe\""
             let ses = InteractiveSession(pathToExe)
             ses.StartReceiving()
             let finished = new AutoResetEvent(false) // using AutoResetEvent because I can't get Async.AwaitEvent to work here without a hang
             ses.PromptReady.Add(fun _ -> finished.Set() |> ignore)
+
             let succeeded = finished.WaitOne(10000)
             if not succeeded then Assert.Fail "Timed out waiting for prompt"
             return ses
@@ -184,3 +186,20 @@ module Interactive =
         let line2 = doc.GetLine editor.CaretLine
         editor.CaretLine |> should equal 3
         doc.GetMarkers line2 |> Seq.length |> should equal 1
+
+    [<Test;AsyncStateMachine(typeof<Task>)>]
+    let ``Interactive gets source directory``() =
+        async {
+            let mutable results = String.empty
+            let! session = createSession()
+            session.SetSourceDirectory "/"
+            let finished = new AutoResetEvent(false)
+            session.TextReceived.Add(fun output -> finished.Set() |> ignore)
+            let succeeded = finished.WaitOne(5000)
+            session.SendInput "printfn __SOURCE_DIRECTORY__;;"
+            let finished = new AutoResetEvent(false)
+            session.TextReceived.Add(fun output -> results <- output 
+                                                   finished.Set() |> ignore)
+            let succeeded = finished.WaitOne(5000)
+            if succeeded then results |> should equal "/\n"
+            else Assert.Fail "Timeout" } |> toTask

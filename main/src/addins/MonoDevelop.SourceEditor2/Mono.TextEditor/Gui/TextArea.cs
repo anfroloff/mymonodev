@@ -62,6 +62,9 @@ namespace Mono.TextEditor
 		protected ActionMargin     actionMargin;
 		protected GutterMargin     gutterMargin;
 		protected FoldMarkerMargin foldMarkerMargin;
+
+		internal MdTextViewLineCollection TextViewLines { get; set; }
+
 		protected TextViewMargin   textViewMargin;
 
 		DocumentLine longestLine      = null;
@@ -241,7 +244,13 @@ namespace Mono.TextEditor
 			double delta = value - this.oldVadjustment;
 			oldVadjustment = value;
 			TextViewMargin.caretY -= delta;
-			
+
+			int startLine = YToLine (this.textEditorData.VAdjustment.Value);
+			TextViewLines?.RemoveLinesBefore (startLine);
+
+			int endlLine = YToLine (this.textEditorData.VAdjustment.Value + Allocation.Height);
+			TextViewLines?.RemoveLinesAfter (endlLine);
+
 			if (System.Math.Abs (delta) >= Allocation.Height - this.LineHeight * 2 || this.TextViewMargin.InSelectionDrag) {
 				this.QueueDraw ();
 				OnVScroll (EventArgs.Empty);
@@ -492,10 +501,7 @@ namespace Mono.TextEditor
 
 		void PreeditStringChanged (object sender, EventArgs e)
 		{
-			if (imContextNeedsReset)
-				preeditString = null;
-			else
-				imContext.GetPreeditString (out preeditString, out preeditAttrs, out preeditCursorCharIndex);
+			imContext.GetPreeditString (out preeditString, out preeditAttrs, out preeditCursorCharIndex);
 			if (!string.IsNullOrEmpty (preeditString)) {
 				if (preeditOffset < 0) {
 					preeditOffset = Caret.Offset;
@@ -1081,9 +1087,12 @@ namespace Mono.TextEditor
 				return true;
 			}
 			bool filter = IMFilterKeyPress (evt, key, unicodeChar, mod);
-			if (filter)
+			if (filter) {
+				imContextNeedsReset = false;
+				ResetIMContext ();
 				return true;
-			
+			}
+
 			//FIXME: OnIMProcessedKeyPressEvent should return false when it didn't handle the event
 			if (editor.OnIMProcessedKeyPressEvent (key, unicodeChar, mod))
 				return true;
@@ -1957,7 +1966,7 @@ namespace Mono.TextEditor
 					if (wrapper.IsUncached)
 						wrapper.Dispose ();
 				}
-
+				TextViewLines?.Add (logicalLineNumber, line);
 				double lineHeight = GetLineHeight (line);
 				foreach (var margin in this.margins) {
 					if (!margin.IsVisible)

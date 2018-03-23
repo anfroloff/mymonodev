@@ -23,7 +23,7 @@ namespace Microsoft.VisualStudio.Text.Editor.Implementation
     using MonoDevelop.Components;
     using Rect = Xwt.Rectangle;
 
-    class PopupAgent : ISpaceReservationAgent
+    internal class PopupAgent : ISpaceReservationAgent
     {
 		internal readonly Mono.TextEditor.MonoTextEditor _textView;
         internal readonly ISpaceReservationManager _manager;
@@ -658,14 +658,14 @@ namespace Microsoft.VisualStudio.Text.Editor.Implementation
         internal abstract class PopupOrWindowContainer
         {
             private Widget _content;
-			protected Mono.TextEditor.MonoTextEditor _placementTarget;
+			protected Gtk.Container _placementTarget;
 
-			public static PopupOrWindowContainer Create(Widget content, Mono.TextEditor.MonoTextEditor placementTarget)
+			public static PopupOrWindowContainer Create(Widget content, Gtk.Container placementTarget)
             {
                 return new PopUpContainer(content, placementTarget);
             }
 
-			public PopupOrWindowContainer(Widget content, Mono.TextEditor.MonoTextEditor placementTarget)
+			public PopupOrWindowContainer(Widget content, Gtk.Container placementTarget)
             {
                 _content = content;
                 _placementTarget = placementTarget;
@@ -725,7 +725,7 @@ namespace Microsoft.VisualStudio.Text.Editor.Implementation
             // popup closing.
             FrameBox _popupContentContainer = new FrameBox();
 
-			public PopUpContainer(Widget content, Mono.TextEditor.MonoTextEditor placementTarget)
+			public PopUpContainer(Widget content, Gtk.Container placementTarget)
                 : base(content, placementTarget)
             {
                 WindowTransparencyDecorator.Attach(_popup);//TODO: not sure we want this on all popus?

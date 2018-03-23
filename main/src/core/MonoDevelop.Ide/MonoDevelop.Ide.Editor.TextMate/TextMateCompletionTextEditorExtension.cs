@@ -33,6 +33,7 @@ using System.Collections.Generic;
 using System.Text;
 using MonoDevelop.Core.Text;
 using MonoDevelop.Ide.TypeSystem;
+using MonoDevelop.Core;
 
 namespace MonoDevelop.Ide.Editor.TextMate
 {
@@ -90,7 +91,7 @@ namespace MonoDevelop.Ide.Editor.TextMate
 		{
 			return Task.Run (delegate {
 				var result = new HashSet<string> ();
-				var sb = new StringBuilder ();
+				var sb = StringBuilderCache.Allocate ();
 				int i = 0;
 				while (i < source.Length) {
 					char ch = source[i];
@@ -115,6 +116,7 @@ namespace MonoDevelop.Ide.Editor.TextMate
 
 					i++;
 				}
+				StringBuilderCache.Free (sb);
 				return (IEnumerable<string>)result;
 			});
 		}
