@@ -45,6 +45,7 @@ using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Text.Editor;
 using MonoDevelop.Ide;
 using System.Threading;
+using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
 
 namespace MonoDevelop.SourceEditor.VsCompletion
 {
