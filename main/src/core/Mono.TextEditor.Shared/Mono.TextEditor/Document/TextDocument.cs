@@ -160,7 +160,11 @@ namespace Mono.TextEditor
 
 		void SyntaxMode_HighlightingStateChanged (object sender, MonoDevelop.Ide.Editor.LineEventArgs e)
 		{
-			CommitMultipleLineUpdate (e.Line.LineNumber, e.Line.LineNumber);
+			if (e == MonoDevelop.Ide.Editor.LineEventArgs.AllLines) {
+				CommitUpdateAll (true);
+			} else { 
+				CommitMultipleLineUpdate (e.Line.LineNumber, e.Line.LineNumber, true);
+			}
 		}
 
 		void OnSyntaxModeChanged (SyntaxModeChangeEventArgs e)
@@ -237,6 +241,7 @@ namespace Mono.TextEditor
 
 		public void Dispose()
 		{
+			(this.TextBuffer as Microsoft.VisualStudio.Text.Implementation.BaseBuffer).ChangedImmediate -= OnTextBufferChangedImmediate;
 			this.TextBuffer.Changed -= this.OnTextBufferChanged;
 			this.TextBuffer.ContentTypeChanged -= this.OnTextBufferContentTypeChanged;
 			this.TextBuffer.Properties.RemoveProperty(typeof(ITextDocument));
@@ -263,7 +268,7 @@ namespace Mono.TextEditor
 
 		void OnTextBufferChanged(object sender, Microsoft.VisualStudio.Text.TextContentChangedEventArgs args)
 		{
-			if (args.Changes == null)
+			if (args.Changes == null || args.Changes.Count == 0)
 				return;
 			var changes = new List<TextChange> ();
 			foreach (var change in args.Changes) {
@@ -1793,8 +1798,8 @@ namespace Mono.TextEditor
 			marker.insertId = textSegmentInsertId++;
 			textSegmentMarkerTree.Add (marker);
 			var startLine = OffsetToLineNumber (marker.Offset);
-			var endLine = OffsetToLineNumber (marker.EndOffset);
-			CommitMultipleLineUpdate (startLine, endLine);
+			var endLine = OffsetToLineNumber (Math.Min (marker.EndOffset, Length));
+			CommitMultipleLineUpdate (startLine, endLine, marker is IChunkMarker);
 		}
 
 		/// <summary>
@@ -1805,11 +1810,11 @@ namespace Mono.TextEditor
 		public bool RemoveMarker (TextSegmentMarker marker)
 		{
 			ClearTextMarkerCache ();
+			var startLine = OffsetToLineNumber (marker.Offset);
+			var endLine = OffsetToLineNumber (Math.Min (marker.EndOffset, Length));
 			bool wasRemoved = textSegmentMarkerTree.Remove (marker);
 			if (wasRemoved) {
-				var startLine = OffsetToLineNumber (marker.Offset);
-				var endLine = OffsetToLineNumber (marker.EndOffset);
-				CommitMultipleLineUpdate (startLine, endLine);
+				CommitMultipleLineUpdate (startLine, endLine, marker is IChunkMarker);
 			}
 			return wasRemoved;
 		}
@@ -1886,12 +1891,26 @@ namespace Mono.TextEditor
 			CommitDocumentUpdate ();
 		}
 
+		// TODO: Merge with CommitUpdateAll (ABI break!)
+		public void CommitUpdateAll (bool removeLineCache)
+		{
+			RequestUpdate (new UpdateAll () { RemoveLineCache = removeLineCache});
+			CommitDocumentUpdate ();
+		}
+
 		public void CommitMultipleLineUpdate (int start, int end)
 		{
 			RequestUpdate (new MultipleLineUpdate (start, end));
 			CommitDocumentUpdate ();
 		}
-		
+
+		// TODO: Merge with CommitMultipleLineUpdate (ABI break!
+		public void CommitMultipleLineUpdate (int start, int end, bool removeLineCache)
+		{
+			RequestUpdate (new MultipleLineUpdate (start, end) { RemoveLineCache = removeLineCache});
+			CommitDocumentUpdate ();
+		}
+
 		public event EventHandler DocumentUpdated;
 #endregion
 

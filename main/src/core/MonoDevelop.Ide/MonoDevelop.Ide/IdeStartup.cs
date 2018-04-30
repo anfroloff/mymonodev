@@ -80,6 +80,7 @@ namespace MonoDevelop.Ide
 
 			//ensure native libs initialized before we hit anything that p/invokes
 			Platform.Initialize ();
+			GettextCatalog.Initialize ();
 
 			LoggingService.LogInfo ("Operating System: {0}", SystemInformation.GetOperatingSystemDescription ());
 
@@ -162,8 +163,6 @@ namespace MonoDevelop.Ide
 			
 			Counters.Initialization.Trace ("Initializing Runtime");
 			Runtime.Initialize (true);
-
-			Composition.CompositionManager.InitializeAsync ().Ignore ();
 
 			IdeApp.Customizer.OnCoreInitialized ();
 
@@ -300,6 +299,7 @@ namespace MonoDevelop.Ide
 			startupTimer.Stop ();
 			Counters.Startup.Inc (GetStartupMetadata (startupInfo));
 
+			GLib.Idle.Add (OnIdle);
 			IdeApp.Run ();
 
 			IdeApp.Customizer.OnIdeShutdown ();
@@ -317,6 +317,12 @@ namespace MonoDevelop.Ide
 			MonoDevelop.Components.GtkWorkarounds.Terminate ();
 			
 			return 0;
+		}
+
+		static bool OnIdle ()
+		{
+			Composition.CompositionManager.InitializeAsync ().Ignore ();
+			return false;
 		}
 
 		static DateTime lastIdle;

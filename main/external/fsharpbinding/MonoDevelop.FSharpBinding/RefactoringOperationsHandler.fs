@@ -101,7 +101,7 @@ module Refactoring =
         match symbolUse.Symbol with
         | :? FSharpMemberOrFunctionOrValue as mfv when mfv.IsDispatchSlot ->
             maybe {
-                let! ent =  mfv.EnclosingEntity
+                let! ent =  mfv.DeclaringEntity
                 let! bt = ent.BaseType
                 if bt.HasTypeDefinition then
                     let baseDefs = bt.TypeDefinition.MembersFunctionsAndValues
@@ -391,7 +391,7 @@ module Refactoring =
             match symbolUse.Symbol with
             | :? FSharpMemberOrFunctionOrValue as mfv when mfv.IsDispatchSlot ->
                 maybe {
-                    let! ent =  mfv.EnclosingEntity
+                    let! ent =  mfv.DeclaringEntity
                     let! bt = ent.BaseType
                     return bt.HasTypeDefinition } |> Option.getOrElse (fun () -> false)
 
@@ -500,7 +500,7 @@ type CurrentRefactoringOperationsHandler() =
                                         | :? FSharpEntity ->
                                             GettextCatalog.GetString ("Go to _Base Type")
                                         | :? FSharpMemberOrFunctionOrValue as mfv ->
-                                            match mfv.EnclosingEntity with
+                                            match mfv.DeclaringEntity with
                                             | Some ent when ent.IsInterface ->
                                                 if mfv.IsProperty then GettextCatalog.GetString ("Go to _Interface Property")
                                                 elif mfv.IsEvent then GettextCatalog.GetString ("Go to _Interface Event")
@@ -544,7 +544,7 @@ type CurrentRefactoringOperationsHandler() =
                                 | :? FSharpEntity as fse when fse.IsInterface -> GettextCatalog.GetString ("Find Implementing Types")
                                 | :? FSharpEntity -> GettextCatalog.GetString ("Find Derived Types")
                                 | :? FSharpMemberOrFunctionOrValue as mfv ->
-                                    match mfv.EnclosingEntity with
+                                    match mfv.DeclaringEntity with
                                     | Some ent when ent.IsInterface ->
                                         GettextCatalog.GetString ("Find Implementing Symbols")
                                     | _ -> GettextCatalog.GetString ("Find overriden Symbols")
@@ -678,9 +678,9 @@ type FSharpJumpToDeclarationHandler () =
 type FSharpFindReferencesProvider () =
     inherit FindReferencesProvider ()
 
-    override x.FindReferences(documentationCommentId, _hintProject, token) =
+    override x.FindReferences(documentationCommentId, _hintProject, monitor) =
         async {
-            return
+            monitor.ReportResults(
                 Search.getAllSymbolsInAllProjects()
                 |> AsyncSeq.toSeq
                 |> Seq.toArray
@@ -688,13 +688,13 @@ type FSharpFindReferencesProvider () =
                 |> Array.filter (fun symbol -> symbol.Symbol.XmlDocSig = documentationCommentId)
                 |> Array.map (fun symbol -> let (filename, startOffset, endOffset) = Symbols.getOffsetsTrimmed symbol.Symbol.DisplayName symbol
                                             SearchResult (FileProvider (filename), startOffset, endOffset-startOffset))
-                |> Array.toSeq
+                |> Array.toSeq)
         }
-        |> StartAsyncAsTask token
+        |> StartAsyncAsTask monitor.CancellationToken :> Task
 
-    override x.FindAllReferences(_documentationCommentId, _hintProject, _token) =
+    override x.FindAllReferences(_documentationCommentId, _hintProject, monitor) =
         //TODO:
-        Task.FromResult Seq.empty
+        Task.CompletedTask
 
 type FSharpCommandsTextEditorExtension () =
     inherit Editor.Extension.TextEditorExtension ()
