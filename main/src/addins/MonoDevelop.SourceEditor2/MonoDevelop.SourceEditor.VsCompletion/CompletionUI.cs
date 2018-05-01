@@ -362,7 +362,7 @@ namespace MonoDevelop.SourceEditor.VsCompletion
 					}
 
 
-					Xwt.Drawing.Image icon = ImageService.GetImage (new Microsoft.VisualStudio.Core.Imaging.ImageId (item.CompletionItem.Image.Guid, item.CompletionItem.Image.Id));
+					Xwt.Drawing.Image icon = ImageService.GetImage (new Microsoft.VisualStudio.Core.Imaging.ImageId (item.CompletionItem.Icon.Guid, item.CompletionItem.Icon.Id));
 					int iconHeight, iconWidth;
 					if (icon != null) {
 						if (drawIconAsSelected)
