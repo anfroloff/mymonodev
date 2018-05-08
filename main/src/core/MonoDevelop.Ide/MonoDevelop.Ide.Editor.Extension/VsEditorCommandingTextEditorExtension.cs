@@ -1,5 +1,5 @@
 //
-// VsCompletionTextEditorExtension.cs
+// VsEditorCommandingTextEditorExtension.cs
 //
 // Author:
 //       David Karlaš <david.karlas@microsoft.com>
@@ -31,8 +31,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Microsoft.VisualStudio.Commanding;
-using Microsoft.VisualStudio.Language.Intellisense;
-using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Editor.Commanding;
@@ -48,16 +46,7 @@ using MonoDevelop.Ide.Editor.Extension;
 
 namespace MonoDevelop.Ide.Editor.Extension
 {
-	[Export (typeof (IExperimentationServiceInternal))]
-	class ExperimentationServiceInternal : IExperimentationServiceInternal
-	{
-		public bool IsCachedFlightEnabled (string flightName)
-		{
-			return "CompletionAPI" == flightName;
-		}
-	}
-
-	public class VsCompletionTextEditorExtension : TextEditorExtension
+	public class VsEditorCommandingTextEditorExtension : TextEditorExtension
 	{
 		private ITextView view;
 		IEditorCommandHandlerService editorCommandHandlerService;
@@ -67,23 +56,6 @@ namespace MonoDevelop.Ide.Editor.Extension
 			base.Initialize ();
 			view = Editor.TextView;
 			editorCommandHandlerService = CompositionManager.GetExportedValue<IEditorCommandHandlerServiceFactory> ().GetService (view);
-		}
-
-		public override bool IsValidInContext (DocumentContext context)
-		{
-			ITextEditorImpl textEditorImpl = context.GetContent<ITextEditorImpl> ();
-			ITextView textView = textEditorImpl?.TextView;
-			bool isValidInContext;
-
-			if (textView == null) {
-				isValidInContext = false;
-			} else if (textView.TextBuffer is IProjectionBuffer) {
-				isValidInContext = true;
-			} else {
-				isValidInContext = CompositionManager.GetExportedValue<IAsyncCompletionBroker> ().IsCompletionSupported (textView.TextBuffer.ContentType);
-			}
-
-			return isValidInContext;
 		}
 
 		[CommandUpdateHandler (TextEditorCommands.ShowCompletionWindow)]
@@ -227,7 +199,6 @@ namespace MonoDevelop.Ide.Editor.Extension
 				case SpecialKey.End:
 					editorCommandHandlerService.Execute ((textView, textBuffer) => new LineEndCommandArgs (textView, textBuffer), NextCommand);
 					break;
-
 				default:
 					if (descriptor.KeyChar != '\0')
 						editorCommandHandlerService.Execute ((textView, textBuffer) => new TypeCharCommandArgs (textView, textBuffer, descriptor.KeyChar), NextCommand);
