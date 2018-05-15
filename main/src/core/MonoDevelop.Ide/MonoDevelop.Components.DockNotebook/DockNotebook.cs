@@ -426,6 +426,9 @@ namespace MonoDevelop.Components.DockNotebook
 
 		internal void ChangeTabToPreview (DockNotebookTab tab)
 		{
+			if (tab.IsPreview) {
+				return;
+			}
 			pages.Remove (tab);
 			if (!previewPages.Exists (s => s == tab)) {
 				previewPages.Add (tab);
