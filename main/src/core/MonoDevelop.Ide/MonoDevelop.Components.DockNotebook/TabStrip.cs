@@ -312,7 +312,7 @@ namespace MonoDevelop.Components.DockNotebook
 		void OnTabContentChanged (object sender, EventArgs args)
 		{
 			var tab = (DockNotebookTab)sender;
-			if (tab.Content is Ide.Gui.SdiWorkspaceWindow wnd && wnd.ViewContent.IsPreviewTab) {
+			if (tab.Content is Ide.Gui.SdiWorkspaceWindow wnd && wnd.IsPreview) {
 				notebook.ChangeTabToPreview (tab); 
 			}
 		}

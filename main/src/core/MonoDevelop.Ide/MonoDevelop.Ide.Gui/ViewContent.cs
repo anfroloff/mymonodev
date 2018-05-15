@@ -146,8 +146,6 @@ namespace MonoDevelop.Ide.Gui
 
 		#endregion
 
-		public virtual bool IsPreviewTab => false;
-
 		protected virtual void OnDirtyChanged ()
 		{
 			if (DirtyChanged != null)
