@@ -1,10 +1,10 @@
 ﻿//
-// Test.cs
+// IDebuggerCompletionProvider.cs
 //
 // Author:
-//       Lluis Sanchez <llsan@microsoft.com>
+//       David Karlaš <david.karlas@microsoft.com>
 //
-// Copyright (c) 2017 Microsoft
+// Copyright (c) 2018 Microsoft Corp
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,16 +23,15 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-using NUnit.Framework;
 using System;
-namespace MonoDevelop.Core.Tests
+using System.Threading.Tasks;
+using Mono.Debugging.Client;
+using System.Threading;
+
+namespace MonoDevelop.Debugger
 {
-	[TestFixture ()]
-	public class Test
+	public interface IDebuggerCompletionProvider
 	{
-		[Test ()]
-		public void TestCase ()
-		{
-		}
+		Task<CompletionData> GetExpressionCompletionData (string exp, StackFrame frame, CancellationToken token);
 	}
 }

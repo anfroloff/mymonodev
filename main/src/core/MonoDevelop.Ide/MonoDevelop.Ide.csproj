@@ -102,11 +102,11 @@
     <NoWarn>1591;1573</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="atk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f"/>
-    <Reference Include="gdk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f"/>
-    <Reference Include="glib-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f"/>
-    <Reference Include="gtk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f"/>
-    <Reference Include="pango-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f"/>
+    <Reference Include="atk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
+    <Reference Include="gdk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
+    <Reference Include="glib-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
+    <Reference Include="gtk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
+    <Reference Include="pango-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>..\..\..\packages\JetBrains.SharpZipLib.Stripped.0.87.20170615.10\lib\net40\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
@@ -9195,7 +9195,6 @@
     <Compile Include="MonoDevelop.Ide.Templates\PackageReferencesForCreatedProject.cs" />
     <Compile Include="MonoDevelop.Ide.Templates\ProjectTemplatePackageInstaller.cs" />
     <Compile Include="MonoDevelop.Ide.TypeSystem\MonoDevelopTextLoader.cs" />
-    <Compile Include="MonoDevelop.Ide.TypeSystem\MonoDevelopSourceTextContainer.cs" />
     <Compile Include="MonoDevelop.Ide.CustomTools\PublicResXFileCodeGenerator.cs" />
     <Compile Include="MonoDevelop.Components\ImageLoader.cs" />
     <Compile Include="MonoDevelop.Ide.CodeCompletion\ParameterHintingData.cs" />
@@ -9535,7 +9534,6 @@
     <Compile Include="MonoDevelop.Ide.Templates\MicrosoftTemplateEngineProcessedTemplateResult.cs" />
     <Compile Include="MonoDevelop.Ide.Codons\TemplateExtensionNode.cs" />
     <Compile Include="MonoDevelop.Ide.Templates\HasReferenceFileTemplateCondition.cs" />
-    <Compile Include="MonoDevelop.Ide.Editor.Highlighting\RoslynClassificationHighlighting.cs" />
     <Compile Include="MonoDevelop.Ide.Projects\LanguageCellRenderer.cs" />
     <Compile Include="MonoDevelop.Components\RestartPanel.cs" />
     <Compile Include="MonoDevelop.Ide.TypeSystem\MonoDevelopSourceText.cs" />
@@ -9640,6 +9638,11 @@
     <Compile Include="MonoDevelop.Ide.Tasks\CommentTasksProvider.Legacy.cs" />
     <Compile Include="MonoDevelop.Ide.Editor.Extension\TagCommentsTextEditorExtension.cs" />
     <Compile Include="MonoDevelop.Ide.Composition\CompositionManager.Caching.cs" />
+    <Compile Include="MonoDevelop.Ide.RoslynServices\MonoDevelopDocumentTrackingService.cs" />
+    <Compile Include="MonoDevelop.Ide.RoslynServices\MonoDevelopProjectCacheHostServiceFactory.cs" />
+    <Compile Include="MonoDevelop.Ide.RoslynServices\MonoDevelopWorkspaceCacheService.cs" />
+    <Compile Include="MonoDevelop.Components.MainToolbar\RoslynSearchCategory.cs" />
+    <Compile Include="MonoDevelop.Components.MainToolbar\RoslynSearchCategory.DeclaredSymbolInfoResult.cs" />
     <Compile Include="MonoDevelop.Ide.Editor.Extension\VsEditorCommandingTextEditorExtension.cs" />
     <Compile Include="MonoDevelop.Ide\ExperimentationService.cs" />
   </ItemGroup>
@@ -9689,6 +9692,7 @@
     <Folder Include="MonoDevelop.Ide.Editor.Highlighting\syntaxes\Markdown\" />
     <Folder Include="MonoDevelop.Ide.EditorConfig\" />
     <Folder Include="Gui\" />
+    <Folder Include="MonoDevelop.Ide.RoslynServices\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="gtkrc">
