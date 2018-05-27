@@ -130,6 +130,7 @@
     <Compile Include="MonoDevelop.DotNetCore.Gui\DotNetCoreSdkLocationWidget.UI.cs">
       <DependentUpon>DotNetCoreSdkLocationWidget.cs</DependentUpon>
     </Compile>
+    <Compile Include="MonoDevelop.DotNetCore.NodeBuilders\PackageDependencyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="MonoDevelop.DotNetCore\" />
