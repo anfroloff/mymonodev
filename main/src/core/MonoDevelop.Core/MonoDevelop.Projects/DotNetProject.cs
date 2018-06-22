@@ -943,7 +943,12 @@ namespace MonoDevelop.Projects
 			if (!noStdLib) {
 				var sa = AssemblyContext.GetAssemblies (TargetFramework).FirstOrDefault (a => a.Name == "System.Core" && a.Package.IsFrameworkPackage);
 				if (sa != null) {
-					var ar = new AssemblyReference (sa.Location);
+					var props = new MSBuildPropertyGroupEvaluated (null);
+					var trueString = "true";
+					var property = new MSBuildPropertyEvaluated (null, "Implicit", trueString, trueString);
+					props.SetProperty (property.Name, property);
+
+					var ar = new AssemblyReference (sa.Location, props);
 					if (!result.Contains (ar))
 						result.Add (ar);
 				}
@@ -964,7 +969,7 @@ namespace MonoDevelop.Projects
 					} else {
 						fullPath = Path.GetFullPath (refFilename.FilePath);
 					}
-					if (await SystemAssemblyService.ContainsReferenceToSystemRuntimeAsync (fullPath)) {
+					if (await SystemAssemblyService.RequiresFacadeAssembliesAsync (fullPath)) {
 						addFacadeAssemblies = true;
 						break;
 					}
@@ -985,6 +990,11 @@ namespace MonoDevelop.Projects
 
 		internal protected virtual Task<List<AssemblyReference>> OnGetFacadeAssemblies ()
 		{
+			var sharedProperties = new MSBuildPropertyGroupEvaluated (null);
+			var resolvedFrom = "ImplicitlyExpandDesignTimeFacades";
+			var property = new MSBuildPropertyEvaluated (null, "ResolvedFrom", resolvedFrom, resolvedFrom);
+			sharedProperties.SetProperty (property.Name, property);
+
 			List<AssemblyReference> result = null;
 			var runtime = TargetRuntime ?? Runtime.SystemAssemblyService.DefaultRuntime;
 			var facades = runtime.FindFacadeAssembliesForPCL (TargetFramework);
@@ -993,7 +1003,8 @@ namespace MonoDevelop.Projects
 					continue;
 				if (result == null)
 					result = new List<AssemblyReference> ();
-				var ar = new AssemblyReference (facade);
+
+				var ar = new AssemblyReference (facade, sharedProperties);
 				result.Add (ar);
 			}
 			return Task.FromResult (result);
@@ -1031,6 +1042,7 @@ namespace MonoDevelop.Projects
 				context.BuilderQueue = BuilderQueue.ShortOperations;
 				context.LoadReferencedProjects = false;
 				context.LogVerbosity = MSBuildVerbosity.Quiet;
+				context.GlobalProperties.SetValue ("Silent", true);
 
 				var result = await RunTarget (monitor, "ResolveAssemblyReferences", configuration, context);
 

@@ -111,12 +111,14 @@ namespace MonoDevelop.AspNetCore
 				try {
 					string installerPath = GetInstallerPath ();
 
+					// Needs to be run with mono64.
 					var monoRuntime = Runtime.SystemAssemblyService.DefaultRuntime as MonoTargetRuntime;
-					string monoPath = monoRuntime.GetMonoExecutableForAssembly (installerPath);
+					string monoPath = Path.Combine (monoRuntime.MonoRuntimeInfo.Prefix, "bin", "mono64");
+					string message = GettextCatalog.GetString ("dotnet-dev-certs wants to make changes.");
 
 					var process = Runtime.ProcessService.StartConsoleProcess (
 						monoPath,
-						$"\"{installerPath}\" \"{DotNetCoreRuntime.FileName}\" \"{monoPath}\"",
+						$"\"{installerPath}\" \"{DotNetCoreRuntime.FileName}\" \"{monoPath}\" \"{message}\"",
 						null,
 						progressMonitor.Console
 					);

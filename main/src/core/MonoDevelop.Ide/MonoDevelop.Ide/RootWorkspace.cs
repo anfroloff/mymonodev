@@ -72,8 +72,6 @@ namespace MonoDevelop.Ide
 					useDefaultRuntime = true;
 				}
 			};
-			
-			FileService.FileChanged += CheckWorkspaceItems;
 		}
 		
 		public RootWorkspaceItemCollection Items {
@@ -616,8 +614,15 @@ namespace MonoDevelop.Ide
 			using (monitor) {
 				// Add the item in the GUI thread. It is not safe to do it in the background thread.
 				if (!monitor.CancellationToken.IsCancellationRequested) {
+
+					// Set the active configuration before adding the solution to the workspace, in this way
+					// roslyn data will be loaded using the stored configuration instead of the default.
+					if (Items.Count == 0)
+						ActiveConfigurationId = GetStoredActiveConfiguration (item, loadPreferences);
+
 					item.SetShared ();
 					Items.Add (item);
+					await FileWatcherService.Add (item);
 				}
 				else {
 					item.Dispose ();
@@ -625,6 +630,7 @@ namespace MonoDevelop.Ide
 				}
 				if (IdeApp.ProjectOperations.CurrentSelectedWorkspaceItem == null)
 					IdeApp.ProjectOperations.CurrentSelectedWorkspaceItem = GetAllSolutions ().FirstOrDefault ();
+
 				Document.IsInProjectSettingLoadingProcess = true;
 				try {
 					if (Items.Count == 1 && loadPreferences) {
@@ -669,6 +675,16 @@ namespace MonoDevelop.Ide
 			metadata ["TotalProjectCount"] = item.GetAllItems<Project> ().Count ().ToString ();
 		}
 
+		string GetStoredActiveConfiguration (WorkspaceItem item, bool loadPreferences)
+		{
+			WorkspaceUserData data = loadPreferences ? item.UserProperties.GetValue<WorkspaceUserData> ("MonoDevelop.Ide.Workspace") : null;
+			if (data != null) {
+				if (item.GetConfigurations ().Contains (data.ActiveConfiguration))
+					return data.ActiveConfiguration;
+			}
+			return GetBestDefaultConfiguration (item);
+		}
+
 		async Task RestoreWorkspacePreferences (WorkspaceItem item)
 		{
 			// Restore local configuration data
@@ -677,11 +693,6 @@ namespace MonoDevelop.Ide
 				WorkspaceUserData data = item.UserProperties.GetValue<WorkspaceUserData> ("MonoDevelop.Ide.Workspace");
 				if (data != null) {
 					ActiveExecutionTarget = null;
-
-					if (GetConfigurations ().Contains (data.ActiveConfiguration))
-						activeConfiguration = data.ActiveConfiguration;
-					else
-						activeConfiguration = GetBestDefaultConfiguration ();
 
 					if (string.IsNullOrEmpty (data.ActiveRuntime))
 						UseDefaultRuntime = true;
@@ -692,10 +703,6 @@ namespace MonoDevelop.Ide
 						else
 							UseDefaultRuntime = true;
 					}
-					OnActiveConfigurationChanged ();
-				}
-				else {
-					ActiveConfigurationId = GetBestDefaultConfiguration ();
 				}
 			}
 			catch (Exception ex) {
@@ -715,13 +722,13 @@ namespace MonoDevelop.Ide
 			}
 		}
 		
-		string GetBestDefaultConfiguration ()
+		string GetBestDefaultConfiguration (WorkspaceItem item)
 		{
 			// 'Debug' is always the best candidate. If there is no debug, pick
 			// the configuration with the highest number of built projects.
 			int nbuilds = 0;
 			string bestConfig = null;
-			foreach (Solution sol in GetAllSolutions ()) {
+			foreach (Solution sol in item.GetAllItems<Solution> ()) {
 				foreach (string conf in sol.GetConfigurations ()) {
 					if (conf == "Debug")
 						return conf;
@@ -762,7 +769,8 @@ namespace MonoDevelop.Ide
 			
 			return item.SaveUserProperties ();
 		}
-		
+
+		[Obsolete ("FileService will generate events for all workspace files.")]
 		public FileStatusTracker GetFileStatusTracker ()
 		{
 			FileStatusTracker fs = new FileStatusTracker ();
@@ -792,14 +800,14 @@ namespace MonoDevelop.Ide
 				reloadingCount--;
 		}
 
-		async void CheckWorkspaceItems (object sender, FileEventArgs args)
+		void SolutionReloadRequired (object sender, WorkspaceItemEventArgs e)
 		{
-			HashSet<FilePath> files = new HashSet<FilePath> (args.Select (e => e.FileName.CanonicalPath));
-			foreach (Solution s in GetAllSolutions ().Where (sol => sol.GetItemFiles (false).Any (f => files.Contains (f.CanonicalPath))))
-				await OnCheckWorkspaceItem (s);
-			
-			foreach (Project p in GetAllProjects ().Where (proj => proj.GetItemFiles (false).Any (f => files.Contains (f.CanonicalPath))))
-				await OnCheckProject (p);
+			OnCheckWorkspaceItem (e.Item).Ignore ();
+		}
+
+		void SolutionItemReloadRequired (object sender, SolutionItemEventArgs e)
+		{
+			OnCheckProject (e.SolutionItem).Ignore ();
 		}
 		
 		async Task OnCheckWorkspaceItem (WorkspaceItem item)
@@ -1073,6 +1081,8 @@ namespace MonoDevelop.Ide
 			sol.ReferenceRemovedFromProject += NotifyReferenceRemovedFromProject;
 			sol.SolutionItemAdded += NotifyItemAddedToSolution;
 			sol.SolutionItemRemoved += NotifyItemRemovedFromSolution;
+			sol.ReloadRequired += SolutionReloadRequired;
+			sol.ItemReloadRequired += SolutionItemReloadRequired;
 		}
 		
 		void UnsubscribeSolution (Solution solution)
@@ -1086,6 +1096,8 @@ namespace MonoDevelop.Ide
 			solution.ReferenceRemovedFromProject -= NotifyReferenceRemovedFromProject;
 			solution.SolutionItemAdded -= NotifyItemAddedToSolution;
 			solution.SolutionItemRemoved -= NotifyItemRemovedFromSolution;
+			solution.ReloadRequired -= SolutionReloadRequired;
+			solution.ItemReloadRequired -= SolutionItemReloadRequired;
 		}
 		
 		void NotifyConfigurationsChanged (object s, EventArgs a)

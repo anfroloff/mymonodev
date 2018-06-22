@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using Microsoft.VisualStudio.Language.Intellisense.Implementation;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Formatting;
 using Microsoft.VisualStudio.Text.Implementation;
@@ -60,6 +61,15 @@ namespace Mono.TextEditor
 			public object IdentityTag => indentityTag;
 
 			public ITextSnapshot Snapshot => lineSpan.Snapshot;
+
+			public void TranslateToSnapshot(ITextSnapshot newSnapshot)
+			{
+				if (Snapshot == newSnapshot) {
+					return;
+				}
+
+				lineSpan = lineSpan.TranslateTo (newSnapshot, SpanTrackingMode.EdgeExclusive);
+			}
 
 			public bool IsFirstTextViewLineForSnapshotLine => collection[0] == this;
 
@@ -159,8 +169,7 @@ namespace Mono.TextEditor
 			{
 				var y = textEditor.LocationToPoint(textEditor.OffsetToLocation(lineSpan.Start)).Y;
 				var loc = textEditor.PointToLocation(xCoordinate, y);
-				var pos = textEditor.LocationToOffset(loc);
-				return new SnapshotPoint(Snapshot, pos);
+				return Snapshot.GetSnapshotPoint (loc.Line, loc.Column);
 			}
 
 			public SnapshotPoint? GetBufferPositionFromXCoordinate(double xCoordinate)

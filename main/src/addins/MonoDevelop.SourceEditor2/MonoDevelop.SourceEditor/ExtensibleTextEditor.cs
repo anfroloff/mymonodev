@@ -56,8 +56,7 @@ namespace MonoDevelop.SourceEditor
 	class ExtensibleTextEditor : Mono.TextEditor.MonoTextEditor
 	{
 		internal object MemoryProbe = Counters.EditorsInMemory.CreateMemoryProbe ();
-		TextEditorKeyPressTimings keyPressTimings = new TextEditorKeyPressTimings ();
-		
+
 		SourceEditorView view;
 		Adjustment cachedHAdjustment, cachedVAdjustment;
 		
@@ -211,11 +210,6 @@ namespace MonoDevelop.SourceEditor
 			IsDestroyed = true;
 			UnregisterAdjustments ();
 
-			if (keyPressTimings != null) {
-				keyPressTimings.ReportTimings (view);
-				keyPressTimings = null;
-			}
-
 			view = null;
 			Document.SyntaxMode = null;
 			base.OnDestroyed ();
@@ -342,16 +336,6 @@ namespace MonoDevelop.SourceEditor
 		}
 
 		protected internal override bool OnIMProcessedKeyPressEvent (Gdk.Key key, uint ch, Gdk.ModifierType state)
-		{
-			try {
-				keyPressTimings.StartTimer ();
-				return OnIMProcessedKeyPressEventInternal (key, ch, state);
-			} finally {
-				keyPressTimings.EndTimer ();
-			}
-		}
-
-		bool OnIMProcessedKeyPressEventInternal (Gdk.Key key, uint ch, Gdk.ModifierType state)
 		{
 			bool result = true;
 			if (key == Gdk.Key.Escape) {
@@ -746,6 +730,11 @@ namespace MonoDevelop.SourceEditor
 			info.Bypass = HasFocus == false;
 		}
 
+		void EnsurePreeditCommitted()
+		{
+			TextArea.CommitPreedit ();
+		}
+
 		[CommandHandler (MonoDevelop.Ide.Commands.TextEditorCommands.LineEnd)]
 		internal void OnLineEnd ()
 		{
@@ -875,12 +864,16 @@ namespace MonoDevelop.SourceEditor
 		[CommandHandler (MonoDevelop.Ide.Commands.TextEditorCommands.SelectionMoveLeft)]
 		internal void OnSelectionMoveLeft ()
 		{
+			EnsurePreeditCommitted ();
+
 			RunAction (SelectionActions.MoveLeft);
 		}
 
 		[CommandHandler (MonoDevelop.Ide.Commands.TextEditorCommands.SelectionMoveRight)]
 		internal void OnSelectionMoveRight ()
 		{
+			EnsurePreeditCommitted ();
+
 			RunAction (SelectionActions.MoveRight);
 		}
 

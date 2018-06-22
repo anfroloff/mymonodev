@@ -53,6 +53,7 @@ namespace MonoDevelop.Refactoring
 	{
 		internal static Func<TextEditor, DocumentContext, OptionSet> OptionSetCreation;
 		static ImmutableList<FindReferencesProvider> findReferencesProvider = ImmutableList<FindReferencesProvider>.Empty;
+		static ImmutableList<FindReferenceUsagesProvider> findReferenceUsagesProviders = ImmutableList<FindReferenceUsagesProvider>.Empty;
 		static List<JumpToDeclarationHandler> jumpToDeclarationHandler = new List<JumpToDeclarationHandler> ();
 
 		static RefactoringService ()
@@ -65,6 +66,18 @@ namespace MonoDevelop.Refactoring
 					break;
 					case ExtensionChange.Remove:
 					findReferencesProvider = findReferencesProvider.Remove (provider);
+					break;
+				}
+			});
+
+			AddinManager.AddExtensionNodeHandler ("/MonoDevelop/Refactoring/FindReferenceUsagesProvider", delegate(object sender, ExtensionNodeEventArgs args) {
+				var provider  = (FindReferenceUsagesProvider) args.ExtensionObject;
+				switch (args.Change) {
+				case ExtensionChange.Add:
+					findReferenceUsagesProviders = findReferenceUsagesProviders.Add (provider);
+					break;
+				case ExtensionChange.Remove:
+					findReferenceUsagesProviders = findReferenceUsagesProviders.Remove (provider);
 					break;
 				}
 			});
@@ -126,7 +139,6 @@ namespace MonoDevelop.Refactoring
 			var rctx = new RefactoringOptions (null, null);
 			var handler = new RenameHandler (changes);
 			FileService.FileRenamed += handler.FileRename;
-			var fileNames = new HashSet<FilePath> ();
 			var ws = TypeSystemService.Workspace as MonoDevelopWorkspace;
 			string originalName;
 			int originalOffset;
@@ -137,7 +149,6 @@ namespace MonoDevelop.Refactoring
 						continue;
 
 					if (ws.TryGetOriginalFileFromProjection (change.FileName, change.Offset, out originalName, out originalOffset)) {
-						fileNames.Add (change.FileName);
 						change.FileName = originalName;
 						change.Offset = originalOffset;
 					}
@@ -160,8 +171,6 @@ namespace MonoDevelop.Refactoring
 						if (change == null)
 							continue;
 
-						fileNames.Add (change.FileName);
-
 						if (replaceChange.Offset >= 0 && change.Offset >= 0 && replaceChange.FileName == change.FileName) {
 							if (replaceChange.Offset < change.Offset) {
 								change.Offset -= replaceChange.RemovedChars;
@@ -174,22 +183,9 @@ namespace MonoDevelop.Refactoring
 						}
 					}
 				}
-
-				foreach (var renameChange in changes.OfType<RenameFileChange> ()) {
-					if (fileNames.Contains (renameChange.OldName)) {
-						fileNames.Remove (renameChange.OldName);
-						fileNames.Add (renameChange.NewName);
-					}
-				}
-
-				foreach (var doc in IdeApp.Workbench.Documents) {
-					fileNames.Remove (doc.FileName);
-				}
-
 			} catch (Exception e) {
 				LoggingService.LogError ("Error while applying refactoring changes", e);
 			} finally {
-				FileService.NotifyFilesChanged (fileNames);
 				FileService.FileRenamed -= handler.FileRename;
 				TextReplaceChange.FinishRefactoringOperation ();
 			}
@@ -284,6 +280,19 @@ namespace MonoDevelop.Refactoring
 					monitor.Dispose ();
 				if (timer != null)
 					timer.Dispose ();
+			}
+		}
+
+		public static async Task FindReferenceUsagesAsync(Projects.ProjectReference projectReference)
+		{
+			using (var monitor = IdeApp.Workbench.ProgressMonitors.GetSearchProgressMonitor (true, true)) {
+				try {
+					foreach (var provider in findReferenceUsagesProviders) {
+						await provider.FindReferences(projectReference, monitor);
+					}
+				} catch (Exception ex) {
+					LoggingService.LogError ("Error finding reference usages", ex);
+				}
 			}
 		}
 

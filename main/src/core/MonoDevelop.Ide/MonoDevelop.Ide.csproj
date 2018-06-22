@@ -6,101 +6,20 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{27096E7F-C91C-4AC6-B289-6897A701DF21}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AssemblyName>MonoDevelop.Ide</AssemblyName>
-    <RootNamespace>MonoDevelop.Ide</RootNamespace>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>$(MDFrameworkVersion)</TargetFrameworkVersion>
+    <OutputPath>..\..\..\build\bin</OutputPath>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>True</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>False</Optimize>
-    <OutputPath>..\..\..\build\bin</OutputPath>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>3</WarningLevel>
-    <Execution>
-      <Execution clr-version="Net_2_0" />
-    </Execution>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <DefineConstants>DEBUG,LINUX</DefineConstants>
-    <NoWarn>1591;1573</NoWarn>
-    <DocumentationFile>..\..\..\build\bin\MonoDevelop.Ide.xml</DocumentationFile>
+    <DefineConstants>LINUX</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>True</Optimize>
-    <OutputPath>..\..\..\build\bin</OutputPath>
     <DefineConstants>LINUX</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>3</WarningLevel>
-    <Execution>
-      <Execution clr-version="Net_2_0" />
-    </Execution>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <DebugSymbols>true</DebugSymbols>
-    <NoWarn>1591;1573</NoWarn>
-    <DocumentationFile>..\..\..\build\bin\MonoDevelop.Ide.xml</DocumentationFile>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'DebugMac|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>..\..\..\build\bin</OutputPath>
-    <DefineConstants>DEBUG,MAC</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>..\..\..\build\bin\MonoDevelop.Ide.xml</DocumentationFile>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Execution>
-      <Execution clr-version="Net_2_0" />
-    </Execution>
-    <NoWarn>1591;1573</NoWarn>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'ReleaseMac|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>..\..\..\build\bin</OutputPath>
-    <DefineConstants>MAC</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>..\..\..\build\bin\MonoDevelop.Ide.xml</DocumentationFile>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Execution>
-      <Execution clr-version="Net_2_0" />
-    </Execution>
-    <NoWarn>1591;1573</NoWarn>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'DebugWin32|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>..\..\..\build\bin</OutputPath>
-    <DefineConstants>DEBUG,WIN32</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>..\..\..\build\bin\MonoDevelop.Ide.xml</DocumentationFile>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <NoWarn>1591;1573</NoWarn>
-    <Execution>
-      <Execution clr-version="Net_2_0" />
-    </Execution>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'ReleaseWin32|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>..\..\..\build\bin</OutputPath>
-    <DefineConstants>WIN32</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>..\..\..\build\bin\MonoDevelop.Ide.xml</DocumentationFile>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Execution>
-      <Execution clr-version="Net_2_0" />
-    </Execution>
-    <NoWarn>1591;1573</NoWarn>
-  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'DebugMac|AnyCPU' " />
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'ReleaseMac|AnyCPU' " />
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'DebugWin32|AnyCPU' " />
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'ReleaseWin32|AnyCPU' " />
   <ItemGroup>
     <Reference Include="atk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
     <Reference Include="gdk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
@@ -141,7 +60,6 @@
     <Reference Include="Mono.Cairo" />
     <Reference Include="Mono.Posix" />
     <Reference Include="monodoc, Version=1.0.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756" />
-    <Reference Include="mscorlib" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>False</Private>
@@ -199,6 +117,22 @@
     </Reference>
     <Reference Include="System.ValueTuple">
       <HintPath>..\..\..\packages\System.ValueTuple.4.4.0\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <!-- when building with xbuild on Unix, $(MSBuildToolsPath) is like `$prefix/lib/mono/xbuild/*/bin`
+    when building with msbuild on Unix, $(MSBuildToolsPath) is like `$prefix/lib/mono/msbuild/*/bin`
+    Prefer referencing msbuild 15.* assemblies over 14.1 . At runtime, we use correct one anyway
+    -->
+    <Reference Include="Microsoft.Build">
+      <HintPath>$(MSBuildToolsPath)\Microsoft.Build.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.Build.Framework">
+      <HintPath>$(MSBuildToolsPath)\Microsoft.Build.Framework.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.Build.Utilities.Core">
+      <HintPath>$(MSBuildToolsPath)\Microsoft.Build.Utilities.Core.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Microsoft.VisualStudio.CodingConventions">
@@ -704,30 +638,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="icons\breakpoint-on-off-16~dark~disabled%402x.png">
       <LogicalName>breakpoint-on-off-16~dark~disabled@2x.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="icons\build-project-16.png">
-      <LogicalName>build-project-16.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="icons\build-project-16%402x.png">
-      <LogicalName>build-project-16@2x.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="icons\build-project-16~dark.png">
-      <LogicalName>build-project-16~dark.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="icons\build-project-16~dark%402x.png">
-      <LogicalName>build-project-16~dark@2x.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="icons\build-solution-16.png">
-      <LogicalName>build-solution-16.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="icons\build-solution-16%402x.png">
-      <LogicalName>build-solution-16@2x.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="icons\build-solution-16~dark.png">
-      <LogicalName>build-solution-16~dark.png</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="icons\build-solution-16~dark%402x.png">
-      <LogicalName>build-solution-16~dark@2x.png</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="icons\element-template-16.png">
       <LogicalName>element-template-16.png</LogicalName>
@@ -2045,6 +1955,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="MonoDevelop.Ide.Gui.Pads.ClassPad\ClassPadContextMenu.addin.xml">
       <LogicalName>ClassPadContextMenu.addin.xml</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MonoDevelop.Ide.BuildOutputView\BuildOutputExtension.addin.xml">
+      <LogicalName>BuildOutputExtension.addin.xml</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="icons\feedback-16.png">
       <LogicalName>feedback-16.png</LogicalName>
@@ -8538,6 +8451,174 @@
     <EmbeddedResource Include="MonoDevelop.Ide.Editor.Highlighting\VSCodeImport\xml\syntaxes\xaml.json">
       <LogicalName>xaml.json</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-small-16~dark%402x.png">
+      <LogicalName>build-error-small-16~dark@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-small-16~dark.png">
+      <LogicalName>build-error-small-16~dark.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-small-16%402x.png">
+      <LogicalName>build-error-small-16@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-small-16.png">
+      <LogicalName>build-error-small-16.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-16~dark%402x.png">
+      <LogicalName>build-error-16~dark@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-16~dark.png">
+      <LogicalName>build-error-16~dark.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-16%402x.png">
+      <LogicalName>build-error-16@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-16.png">
+      <LogicalName>build-error-16.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-small-16~dark%402x.png">
+      <LogicalName>build-warning-small-16~dark@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-small-16~dark.png">
+      <LogicalName>build-warning-small-16~dark.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-small-16%402x.png">
+      <LogicalName>build-warning-small-16@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-small-16.png">
+      <LogicalName>build-warning-small-16.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-16~dark%402x.png">
+      <LogicalName>build-warning-16~dark@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-16~dark.png">
+      <LogicalName>build-warning-16~dark.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-16%402x.png">
+      <LogicalName>build-warning-16@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-16.png">
+      <LogicalName>build-warning-16.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-target-16~dark%402x.png">
+      <LogicalName>build-target-16~dark@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-target-16~dark.png">
+      <LogicalName>build-target-16~dark.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-target-16%402x.png">
+      <LogicalName>build-target-16@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-target-16.png">
+      <LogicalName>build-target-16.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-small-16~sel%402x.png">
+      <LogicalName>build-warning-small-16~sel@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-small-16~sel.png">
+      <LogicalName>build-warning-small-16~sel.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-small-16~dark~sel%402x.png">
+      <LogicalName>build-warning-small-16~dark~sel@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-small-16~dark~sel.png">
+      <LogicalName>build-warning-small-16~dark~sel.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-16~sel%402x.png">
+      <LogicalName>build-warning-16~sel@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-16~sel.png">
+      <LogicalName>build-warning-16~sel.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-16~dark~sel%402x.png">
+      <LogicalName>build-warning-16~dark~sel@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-warning-16~dark~sel.png">
+      <LogicalName>build-warning-16~dark~sel.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-target-16~sel%402x.png">
+      <LogicalName>build-target-16~sel@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-target-16~sel.png">
+      <LogicalName>build-target-16~sel.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-target-16~dark~sel%402x.png">
+      <LogicalName>build-target-16~dark~sel@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-target-16~dark~sel.png">
+      <LogicalName>build-target-16~dark~sel.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-small-16~sel%402x.png">
+      <LogicalName>build-error-small-16~sel@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-small-16~sel.png">
+      <LogicalName>build-error-small-16~sel.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-small-16~dark~sel%402x.png">
+      <LogicalName>build-error-small-16~dark~sel@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-small-16~dark~sel.png">
+      <LogicalName>build-error-small-16~dark~sel.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-16~sel%402x.png">
+      <LogicalName>build-error-16~sel@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-16~sel.png">
+      <LogicalName>build-error-16~sel.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-16~dark~sel%402x.png">
+      <LogicalName>build-error-16~dark~sel@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-error-16~dark~sel.png">
+      <LogicalName>build-error-16~dark~sel.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-failed-16.png">
+      <LogicalName>build-task-failed-16.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-failed-16%402x.png">
+      <LogicalName>build-task-failed-16@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-failed-16~dark.png">
+      <LogicalName>build-task-failed-16~dark.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-failed-16~dark%402x.png">
+      <LogicalName>build-task-failed-16~dark@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-failed-16~dark~sel.png">
+      <LogicalName>build-task-failed-16~dark~sel.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-failed-16~dark~sel%402x.png">
+      <LogicalName>build-task-failed-16~dark~sel@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-failed-16~sel.png">
+      <LogicalName>build-task-failed-16~sel.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-failed-16~sel%402x.png">
+      <LogicalName>build-task-failed-16~sel@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-success-16.png">
+      <LogicalName>build-task-success-16.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-success-16%402x.png">
+      <LogicalName>build-task-success-16@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-success-16~dark.png">
+      <LogicalName>build-task-success-16~dark.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-success-16~dark%402x.png">
+      <LogicalName>build-task-success-16~dark@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-success-16~dark~sel.png">
+      <LogicalName>build-task-success-16~dark~sel.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-success-16~dark~sel%402x.png">
+      <LogicalName>build-task-success-16~dark~sel@2x.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-success-16~sel.png">
+      <LogicalName>build-task-success-16~sel.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="icons\build-task-success-16~sel%402x.png">
+      <LogicalName>build-task-success-16~sel@2x.png</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MonoDevelop.Ide.Commands\CustomStringTagProvider.cs" />
@@ -9527,7 +9608,6 @@
     <Compile Include="MonoDevelop.Ide.CodeCompletion\CompletionTriggerReason.cs" />
     <Compile Include="MonoDevelop.Ide.CodeCompletion\CompletionSelectionStatus.cs" />
     <Compile Include="MonoDevelop.Ide.TypeSystem\EditorNotificationServiceFactory.cs" />
-    <Compile Include="MonoDevelop.Ide.TypeSystem\GlobalOptionPersister.cs" />
     <Compile Include="MonoDevelop.Ide.TypeSystem\TextPolicyDocumentOptionsProvider.cs" />
     <Compile Include="MonoDevelop.Ide.Templates\MicrosoftTemplateEngineProjectTemplatingProvider.cs" />
     <Compile Include="MonoDevelop.Ide.Templates\MicrosoftTemplateEngineSolutionTemplate.cs" />
@@ -9545,6 +9625,12 @@
     <Compile Include="MonoDevelop.Ide.Editor.Extension\LineSeparatorTextEditorExtension.cs" />
     <Compile Include="MonoDevelop.Ide.Templates\ProjectCapabilityFileTemplateCondition.cs" />
     <Compile Include="MonoDevelop.Ide.Templates\OrFileTemplateCondition.cs" />
+    <Compile Include="MonoDevelop.Ide.BuildOutputView\BuildLogDisplayBinding.cs" />
+    <Compile Include="MonoDevelop.Ide.BuildOutputView\BuildOutputProcessor.cs" />
+    <Compile Include="MonoDevelop.Ide.BuildOutputView\BuildOutputViewContent.cs" />
+    <Compile Include="MonoDevelop.Ide.BuildOutputView\BuildOutputWidget.cs" />
+    <Compile Include="MonoDevelop.Ide.BuildOutputView\BuildOutput.cs" />
+    <Compile Include="MonoDevelop.Ide.BuildOutputView\MSBuildOutputProcessor.cs" />
     <Compile Include="MonoDevelop.Ide.CodeCompletion\CompletionController.cs" />
     <Compile Include="MonoDevelop.Ide.CodeCompletion\ICompletionView.cs" />
     <Compile Include="MonoDevelop.Ide.CodeCompletion\ICompletionViewEventSink.cs" />
@@ -9555,6 +9641,9 @@
     <Compile Include="MonoDevelop.Ide.Editor\EditorConfigService.cs" />
     <Compile Include="MonoDevelop.Ide.Gui\StartupAssetType.cs" />
     <Compile Include="MonoDevelop.Ide.Gui\DocumentRegistry.cs" />
+    <Compile Include="MonoDevelop.Ide.BuildOutputView\BuildOutputNode.cs" />
+    <Compile Include="MonoDevelop.Ide.BuildOutputView\BuildOutputTreeCellView.cs" />
+    <Compile Include="MonoDevelop.Ide.BuildOutputView\IBuildOutputContextProvider.cs" />
     <Compile Include="MonoDevelop.Ide.Codons\ItemTemplateExtensionNode.cs" />
     <Compile Include="MonoDevelop.Ide.Templates\MicrosoftTemplateEngineItemTemplatingProvider.cs" />
     <Compile Include="MonoDevelop.Ide.Templates\ItemTemplate.cs" />
@@ -9643,11 +9732,26 @@
     <Compile Include="MonoDevelop.Ide.RoslynServices\MonoDevelopWorkspaceCacheService.cs" />
     <Compile Include="MonoDevelop.Components.MainToolbar\RoslynSearchCategory.cs" />
     <Compile Include="MonoDevelop.Components.MainToolbar\RoslynSearchCategory.DeclaredSymbolInfoResult.cs" />
+    <Compile Include="MonoDevelop.Ide.RoslynServices\RoslynService.cs" />
+    <Compile Include="MonoDevelop.Ide.RoslynServices.Options\MonoDevelopGlobalOptionPersister.cs" />
+    <Compile Include="MonoDevelop.Ide.RoslynServices.Options\RoslynPreferences.cs" />
+    <Compile Include="MonoDevelop.Ide.RoslynServices.Options\OptionsExtensions.cs" />
+    <Compile Include="MonoDevelop.Ide.RoslynServices.Options\RoslynPreferences.Properties.cs" />
+    <Compile Include="MonoDevelop.Ide.Desktop\IPlatformTelemetryDetails.cs" />
+    <Compile Include="MonoDevelop.Ide.Editor.Extension\CompletionStatistics.cs" />
+    <Compile Include="MonoDevelop.Ide.RoslynServices\MonoDevelopNotificationServiceFactory.cs" />
+    <Compile Include="MonoDevelop.Ide.RoslynServices\MonoDevelopTaskSchedulerFactory.cs" />
+    <Compile Include="MonoDevelop.Ide.Editor.Highlighting\IEditorThemeProvider.cs" />
+    <Compile Include="MonoDevelop.Ide.Editor.Highlighting\ISyntaxHighlightingDefinitionProvider.cs" />
+    <Compile Include="MonoDevelop.Ide\PlatformMemoryStatusEventArgs.cs" />
+    <Compile Include="MonoDevelop.Ide.Desktop\MemoryMonitor.cs" />
+    <Compile Include="MonoDevelop.Ide.RoslynServices\MonoDevelopErrorReportingService.cs" />
+    <Compile Include="MonoDevelop.Ide.RoslynServices\MonoDevelopInfoBarService.cs" />
+    <Compile Include="MonoDevelop.Ide.Gui.Components\InfoBar.cs" />
     <Compile Include="MonoDevelop.Ide.Editor.Extension\VsEditorCommandingTextEditorExtension.cs" />
     <Compile Include="MonoDevelop.Ide\ExperimentationService.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Makefile.am" />
     <Data Include="options\DefaultEditingLayout.xml" />
     <Data Include="options\MonoDevelopProperties.xml" />
     <Data Include="options\MonoDevelop-templates.xml" />
@@ -9686,15 +9790,6 @@
     <None Include="MonoDevelop.Ide.Editor.Highlighting\VSCodeImport\objective-c\package.json" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="MonoDevelop.Components.MainToolbar\Theme\" />
-    <Folder Include="MonoDevelop.Components\Xwt\" />
-    <Folder Include="MonoDevelop.Components.AtkCocoaHelper\" />
-    <Folder Include="MonoDevelop.Ide.Editor.Highlighting\syntaxes\Markdown\" />
-    <Folder Include="MonoDevelop.Ide.EditorConfig\" />
-    <Folder Include="Gui\" />
-    <Folder Include="MonoDevelop.Ide.RoslynServices\" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="gtkrc">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -9717,6 +9812,7 @@
     <InternalsVisibleTo Include="MonoDevelop.Debugger" />
     <InternalsVisibleTo Include="MonoDevelop.DesignerSupport" />
     <InternalsVisibleTo Include="MonoDevelop.Ide.Tests" />
+    <InternalsVisibleTo Include="IdeUnitTests" />
     <InternalsVisibleTo Include="MonoDevelop.SourceEditor" />
     <InternalsVisibleTo Include="Xamarin.OSXEditor" />
     <InternalsVisibleTo Include="MonoDevelop.Refactoring" />

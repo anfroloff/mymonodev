@@ -26,6 +26,8 @@ using Microsoft.VisualStudio.Utilities;
 using Microsoft.VisualStudio.Text.Editor;
 using static Microsoft.VisualStudio.Language.Intellisense.Implementation.MDUtils;
 using Microsoft.VisualStudio.Language.StandardClassification;
+using MonoDevelop.Core.Text;
+using MonoDevelop.Ide.Tasks;
 
 namespace Microsoft.VisualStudio.Platform
 {
@@ -48,6 +50,9 @@ namespace Microsoft.VisualStudio.Platform
 		private ITextView textView { get; }
 		private IAccurateClassifier classifier { get; set; }
 		readonly Dictionary<string, ScopeStack> classificationMap;
+		Dictionary<IClassificationType, ScopeStack> classificationTypeToScopeCache = new Dictionary<IClassificationType, ScopeStack> ();
+		ScopeStack defaultScopeStack = new ScopeStack (EditorThemeColors.Foreground);
+		ScopeStack userScope;
 		private MonoDevelop.Ide.Editor.ITextDocument textDocument { get; }
 
 		internal TagBasedSyntaxHighlighting (ITextView textView, string defaultScope)
@@ -56,6 +61,7 @@ namespace Microsoft.VisualStudio.Platform
 			this.textDocument = textView.GetTextEditor ();
 			if (defaultScope != null)
 				classificationMap = GetClassificationMap (defaultScope);
+			this.userScope = this.defaultScopeStack.Push (EditorThemeColors.UserTypes);
 		}
 
 		public Task<HighlightedLine> GetHighlightedLineAsync (IDocumentLine line, CancellationToken cancellationToken)
@@ -76,30 +82,91 @@ namespace Microsoft.VisualStudio.Platform
 			ScopeStack scopeStack;
 			foreach (ClassificationSpan curSpan in classifications) {
 				if (curSpan.Span.Start > lastClassifiedOffsetEnd) {
-					scopeStack = new ScopeStack (EditorThemeColors.Foreground);
+					scopeStack = userScope;
 					ColoredSegment whitespaceSegment = new ColoredSegment (lastClassifiedOffsetEnd - start, curSpan.Span.Start - lastClassifiedOffsetEnd, scopeStack);
 					coloredSegments.Add (whitespaceSegment);
 				}
 
 				scopeStack = GetScopeStackFromClassificationType (curSpan.ClassificationType);
-				ColoredSegment curColoredSegment = new ColoredSegment (curSpan.Span.Start - start, curSpan.Span.Length, scopeStack);
-				coloredSegments.Add (curColoredSegment);
+				if (scopeStack.Peek ().StartsWith ("comment", StringComparison.Ordinal)) {
+					ScanAndAddComment (coloredSegments, start, scopeStack, curSpan);
+				} else {
+					var curColoredSegment = new ColoredSegment (curSpan.Span.Start - start, curSpan.Span.Length, scopeStack);
+					coloredSegments.Add (curColoredSegment);
+				}
 
 				lastClassifiedOffsetEnd = curSpan.Span.End;
 			}
 
 			if (end > lastClassifiedOffsetEnd) {
-				scopeStack = new ScopeStack (EditorThemeColors.Foreground);
+				scopeStack = userScope;
 				ColoredSegment whitespaceSegment = new ColoredSegment (lastClassifiedOffsetEnd - start, end - lastClassifiedOffsetEnd, scopeStack);
 				coloredSegments.Add (whitespaceSegment);
 			}
 
 			return Task.FromResult(new HighlightedLine (line, coloredSegments));
 		}
+		#region Tag Comment Scanning
 
-		public Task<ScopeStack> GetScopeStackAsync (int offset, CancellationToken cancellationToken)
+		void ScanAndAddComment (List<ColoredSegment> coloredSegments, int startOffset, ScopeStack commentScopeStack, ClassificationSpan classificationSpan)
 		{
-			return Task.FromResult (ScopeStack.Empty);
+			int lastClassifiedOffset = classificationSpan.Span.Start;
+			try {
+				// Scan comments for tag highlighting
+				var text = textView.TextSnapshot.GetText (classificationSpan.Span);
+				int idx = 0, oldIdx = 0;
+
+				while ((idx = FindNextCommentTagIndex (text, idx, out string commentTag)) >= 0) {
+					var headSpanLength = idx - oldIdx;
+					if (headSpanLength > 0) {
+						var headSegment = new ColoredSegment (lastClassifiedOffset - startOffset, headSpanLength, commentScopeStack);
+						lastClassifiedOffset += headSpanLength;
+						coloredSegments.Add (headSegment);
+					}
+					var highlightSegment = new ColoredSegment (lastClassifiedOffset - startOffset, commentTag.Length, commentScopeStack.Push ("markup.other"));
+					coloredSegments.Add (highlightSegment);
+					idx += commentTag.Length;
+					lastClassifiedOffset += commentTag.Length;
+					oldIdx = idx;
+				}
+			} catch (Exception e) {
+				LoggingService.LogError ("Error while scanning comment tags.", e);
+			}
+			int tailSpanLength = classificationSpan.Span.End - lastClassifiedOffset;
+			if (tailSpanLength > 0) {
+				var tailSpan = new ColoredSegment (lastClassifiedOffset - startOffset, tailSpanLength, commentScopeStack);
+				coloredSegments.Add (tailSpan);
+			}
+		}
+
+		static int FindNextCommentTagIndex (string text, int startIndex, out string commentTag)
+		{
+			var foundIndex = -1;
+			commentTag = null;
+			foreach (var tag in CommentTag.SpecialCommentTags) {
+				var i = text.IndexOf (tag.Tag, startIndex, StringComparison.OrdinalIgnoreCase);
+				if (i < 0)
+					continue;
+				if (i < foundIndex || foundIndex < 0) {
+					foundIndex = i;
+					commentTag = tag.Tag;
+				}
+			}
+			return foundIndex;
+		}
+
+		#endregion
+
+		public async Task<ScopeStack> GetScopeStackAsync (int offset, CancellationToken cancellationToken)
+		{
+			var line = textDocument.GetLineByOffset (offset);
+			var highligthedLine = await GetHighlightedLineAsync (line, cancellationToken).ConfigureAwait (false);
+			offset -= line.Offset;
+			foreach (var segment in highligthedLine.Segments) {
+				if (segment.Offset <= offset && segment.EndOffset >= offset)
+					return segment.ScopeStack;
+			}
+			return defaultScopeStack;
 		}
 
 		private EventHandler<LineEventArgs> _highlightingStateChanged;
@@ -152,9 +219,6 @@ namespace Microsoft.VisualStudio.Platform
 				}
 			}
 		}
-
-		Dictionary<IClassificationType, ScopeStack> classificationTypeToScopeCache = new Dictionary<IClassificationType, ScopeStack> ();
-		static ScopeStack defaultScopeStack = new ScopeStack (EditorThemeColors.Foreground);
 
 		private ScopeStack GetScopeStackFromClassificationType (IClassificationType classificationType)
 		{
@@ -324,12 +388,12 @@ namespace Microsoft.VisualStudio.Platform
 		}
 
 		static ImmutableDictionary<string, Dictionary<string, ScopeStack>> classificationMapCache = ImmutableDictionary<string, Dictionary<string, ScopeStack>>.Empty;
-		static Dictionary<string, ScopeStack> GetClassificationMap (string scope)
+		Dictionary<string, ScopeStack> GetClassificationMap (string scope)
 		{
 			Dictionary<string, ScopeStack> result;
+			defaultScopeStack = new ScopeStack (scope);
 			if (classificationMapCache.TryGetValue (scope, out result))
 				return result;
-			var defaultScopeStack = new ScopeStack (scope);
 			result = new Dictionary<string, ScopeStack> {
 				[ClassificationTypeNames.Comment] = MakeScope (defaultScopeStack, "comment." + scope),
 				[ClassificationTypeNames.ExcludedCode] = MakeScope (defaultScopeStack, "comment.excluded." + scope),

@@ -27,23 +27,23 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Security;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
+
 using Mono.Addins;
 using Mono.Addins.Setup;
-using MonoDevelop.Core;
 using MonoDevelop.Core.Assemblies;
 using MonoDevelop.Core.Execution;
 using MonoDevelop.Core.Instrumentation;
 using MonoDevelop.Core.Setup;
-using System.Security.Cryptography.X509Certificates;
-using System.Net.Security;
-using System.Net;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-
 
 namespace MonoDevelop.Core
 {
@@ -85,7 +85,8 @@ namespace MonoDevelop.Core
 
 			Platform.Initialize ();
 
-			mainThread = Thread.CurrentThread;
+			mainThread = mainThread ?? Thread.CurrentThread;
+
 			// Set a default sync context
 			if (SynchronizationContext.Current == null) {
 				defaultSynchronizationContext = new SynchronizationContext ();
@@ -162,7 +163,7 @@ namespace MonoDevelop.Core
 			foreach (AddinRepository rep in reps.GetRepositories ()) {
 				if (rep.Url.StartsWith ("http://go-mono.com/md/") || 
 					(rep.Url.StartsWith ("http://monodevelop.com/files/addins/")) ||
-					(rep.Url.StartsWith ("http://addins.monodevelop.com/") && !validUrls.Contains (rep.Url)))
+				    ((rep.Url.StartsWith ("http://addins.monodevelop.com/") || rep.Url.StartsWith ("https://addins.monodevelop.com/")) && !validUrls.Contains (rep.Url)))
 					reps.RemoveRepository (rep.Url);
 			}
 			
@@ -187,7 +188,7 @@ namespace MonoDevelop.Core
 			else
 				platform = "Linux";
 			
-			return "http://addins.monodevelop.com/" + quality + "/" + platform + "/" + AddinManager.CurrentAddin.Version + "/main.mrep";
+			return "https://addins.monodevelop.com/" + quality + "/" + platform + "/" + AddinManager.CurrentAddin.Version + "/main.mrep";
 		}
 		
 		static void SetupInstrumentation ()
@@ -234,6 +235,7 @@ namespace MonoDevelop.Core
 				ShuttingDown (null, EventArgs.Empty);
 			
 			PropertyService.SaveProperties ();
+			FSW.OSX.FileSystemWatcher.DisposeAll ();
 			
 			if (processService != null) {
 				processService.Dispose ();
@@ -298,24 +300,15 @@ namespace MonoDevelop.Core
 			set {
 				if (mainSynchronizationContext != null && value != null)
 					throw new InvalidOperationException ("The main synchronization context has already been set");
+
+				mainThread = Thread.CurrentThread;
 				mainSynchronizationContext = value;
-				taskScheduler = null;
+				taskScheduler = new SynchronizationContextTaskScheduler (value);
 			}
 		}
-
 
 		static TaskScheduler taskScheduler;
-		public static TaskScheduler MainTaskScheduler {
-			get {
-				if (taskScheduler == null)
-					RunInMainThread (() => {
-						if (taskScheduler == null)
-							taskScheduler = TaskScheduler.FromCurrentSynchronizationContext ();
-					}).Wait ();
-
-				return taskScheduler;
-			}
-		}
+		public static TaskScheduler MainTaskScheduler => taskScheduler;
 
 		/// <summary>
 		/// Runs an action in the main thread (usually the UI thread). The method returns a task, so it can be awaited.
@@ -496,10 +489,10 @@ namespace MonoDevelop.Core
 		{
 			// Explicitly load the msbuild libraries since they are not installed in the GAC
 			var path = systemAssemblyService.CurrentRuntime.GetMSBuildBinPath ("15.0");
-			SystemAssemblyService.LoadAssemblyFrom (System.IO.Path.Combine (path, "Microsoft.Build.dll"));
-			SystemAssemblyService.LoadAssemblyFrom (System.IO.Path.Combine (path, "Microsoft.Build.Framework.dll"));
-			SystemAssemblyService.LoadAssemblyFrom (System.IO.Path.Combine (path, "Microsoft.Build.Tasks.Core.dll"));
-			SystemAssemblyService.LoadAssemblyFrom (System.IO.Path.Combine (path, "Microsoft.Build.Utilities.Core.dll"));
+			LoadAssemblyFrom (System.IO.Path.Combine (path, "Microsoft.Build.dll"));
+			LoadAssemblyFrom (System.IO.Path.Combine (path, "Microsoft.Build.Framework.dll"));
+			LoadAssemblyFrom (System.IO.Path.Combine (path, "Microsoft.Build.Tasks.Core.dll"));
+			LoadAssemblyFrom (System.IO.Path.Combine (path, "Microsoft.Build.Utilities.Core.dll"));
 
 			if (Type.GetType ("Mono.Runtime") == null) {
 				AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
@@ -521,6 +514,20 @@ namespace MonoDevelop.Core
 			}
 
 			return null;
+		}
+
+		public static Assembly LoadAssemblyFrom (string asmPath)
+		{
+			if (Environment.OSVersion.Platform == PlatformID.Win32NT) {
+				// MEF composition under Win32 requires that all assemblies be loaded in the
+				// Assembly.Load() context so use Assembly.Load() after getting the AssemblyName
+				// (which, on Win32, also contains the full path information so Assembly.Load()
+				// will work).
+				var asmName = AssemblyName.GetAssemblyName (asmPath);
+				return Assembly.Load (asmName);
+			}
+
+			return Assembly.LoadFrom (asmPath);
 		}
 	}
 	

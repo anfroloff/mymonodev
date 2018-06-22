@@ -210,7 +210,7 @@ namespace MonoDevelop.Projects.MSBuild
 		public BinaryMessage BeginBuild (BeginBuildRequest msg)
 		{
 			var logger = msg.LogWriterId != -1 ? (IEngineLogWriter)new LogWriter (msg.LogWriterId, msg.EnabledLogEvents) : (IEngineLogWriter)new NullLogWriter ();
-			BeginBuildOperation (logger, msg.Verbosity, msg.Configurations);
+			BeginBuildOperation (logger, msg.BinLogFilePath, msg.Verbosity, msg.Configurations);
 			return msg.CreateResponse ();
 		}
 
@@ -327,6 +327,10 @@ namespace MonoDevelop.Projects.MSBuild
 						} catch (ThreadAbortException) {
 							// Gracefully stop the thread
 							Thread.ResetAbort ();
+
+							// Try to end the build here, to workaround a finalizer crash in zstream in mono
+							// https://github.com/mono/mono/issues/9142
+							Microsoft.Build.Execution.BuildManager.DefaultBuildManager.EndBuild ();
 							return;
 						} catch (Exception ex) {
 							workError = ex;

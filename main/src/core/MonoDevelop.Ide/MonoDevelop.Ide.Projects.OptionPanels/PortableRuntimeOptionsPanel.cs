@@ -246,8 +246,6 @@ namespace MonoDevelop.Ide.Projects.OptionPanels
 		//TODO error handling
 		public void Store ()
 		{
-			bool needsRestore = false;
-
 			//get the new framework and netstandard version
 			var isNetStandard = netstandardRadio.Active;
 			var nsVersion = isNetStandard ? NetStandardVersion : null;
@@ -263,7 +261,6 @@ namespace MonoDevelop.Ide.Projects.OptionPanels
 			var projectJsonFile = project.GetProjectFile (project.BaseDirectory.Combine ("project.json"));
 			if (isNetStandard && projectJsonFile == null) {
 				projectJsonFile = MigrateToProjectJson (project);
-				needsRestore = true;
 			}
 
 			//if project.json exists, update it
@@ -271,16 +268,11 @@ namespace MonoDevelop.Ide.Projects.OptionPanels
 				var nugetFx = nsVersion ?? GetPclProfileFullName (fx.Id) ?? NetStandardDefaultFramework;
 				bool projectJsonChanged;
 				SetProjectJsonValues (projectJsonFile.FilePath, nugetFx, out projectJsonChanged);
-				needsRestore = projectJsonChanged;
 			}
 
 			//if the framework has changed, update it
 			if (fx != null && fx != project.TargetFramework) {
 				project.TargetFramework = fx;
-			}
-
-			if (needsRestore) {
-				FileService.NotifyFileChanged (projectJsonFile.FilePath);
 			}
 		}
 

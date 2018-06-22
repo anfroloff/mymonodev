@@ -428,10 +428,11 @@ namespace MonoDevelop.Ide.Gui
 						// save backup first						
 						if (IdeApp.Preferences.CreateFileBackupCopies) {
                             await Window.ViewContent.Save (fileName + "~");
-							FileService.NotifyFileChanged (fileName + "~");
 						}
 						DocumentRegistry.SkipNextChange (fileName);
 						await Window.ViewContent.Save (fileName);
+						// Force a change notification. This is needed for FastCheckNeedsBuild to be updated
+						// when saving before a build, for example.
 						FileService.NotifyFileChanged (fileName);
                         OnSaved(EventArgs.Empty);
 					}
@@ -539,7 +540,6 @@ namespace MonoDevelop.Ide.Gui
 
 		protected override void OnSaved (EventArgs e)
 		{
-			IdeApp.Workbench.SaveFileStatus ();
 			base.OnSaved (e);
 		}
 
@@ -848,7 +848,10 @@ namespace MonoDevelop.Ide.Gui
 			if (analysisDocument != null) {
 				Microsoft.CodeAnalysis.Document doc;
 				try {
-					 doc = RoslynWorkspace.CurrentSolution.GetDocument (analysisDocument);
+					doc = RoslynWorkspace.CurrentSolution.GetDocument (analysisDocument);
+					if (doc == null && RoslynWorkspace.CurrentSolution.ContainsAdditionalDocument (analysisDocument)) {
+						return Task.CompletedTask;
+					}
 				} catch (Exception) {
 					doc = null;
 				}
@@ -867,7 +870,7 @@ namespace MonoDevelop.Ide.Gui
 						return Task.CompletedTask;
 					SubscribeRoslynWorkspace ();
 					analysisDocument = FileName != null ? TypeSystemService.GetDocumentId (this.Project, this.FileName) : null;
-					if (analysisDocument != null && !RoslynWorkspace.IsDocumentOpen(analysisDocument)) {
+					if (analysisDocument != null && !RoslynWorkspace.CurrentSolution.ContainsAdditionalDocument (analysisDocument) && !RoslynWorkspace.IsDocumentOpen(analysisDocument)) {
 						TypeSystemService.InformDocumentOpen (analysisDocument, Editor, this);
 						OnAnalysisDocumentChanged (EventArgs.Empty);
 					}

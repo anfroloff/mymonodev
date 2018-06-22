@@ -39,11 +39,15 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Linq;
 
+using Microsoft.CodeAnalysis.Utilities;
+using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
+
 using Mono.Unix;
 
 using Mono.Addins;
 using MonoDevelop.Components.Commands;
 using MonoDevelop.Core;
+using MonoDevelop.Core.Assemblies;
 using MonoDevelop.Ide.Gui.Dialogs;
 using MonoDevelop.Ide.Gui;
 using MonoDevelop.Core.Instrumentation;
@@ -85,6 +89,14 @@ namespace MonoDevelop.Ide
 
 			LoggingService.LogInfo ("Operating System: {0}", SystemInformation.GetOperatingSystemDescription ());
 
+			if (!Platform.IsWindows) {
+				// The assembly resolver for MSBuild 15 assemblies needs to be defined early on.
+				// Whilst Runtime.Initialize loads the MSBuild 15 assemblies from Mono this seems
+				// to be too late to prevent the MEF composition and the static registrar from
+				// failing to load the MonoDevelop.Ide assembly which now uses MSBuild 15 assemblies.
+				ResolveMSBuildAssemblies ();
+			}
+
 			Counters.Initialization.BeginTiming ();
 
 			if (options.PerfLog) {
@@ -122,7 +134,7 @@ namespace MonoDevelop.Ide
 
 			// XWT initialization
 			FilePath p = typeof(IdeStartup).Assembly.Location;
-			Platform.AssemblyLoad(p.ParentDirectory.Combine("Xwt.Gtk.dll"));
+			Runtime.LoadAssemblyFrom (p.ParentDirectory.Combine("Xwt.Gtk.dll"));
 			Xwt.Application.InitializeAsGuest (Xwt.ToolkitType.Gtk);
 			Xwt.Toolkit.CurrentEngine.RegisterBackend<IExtendedTitleBarWindowBackend,GtkExtendedTitleBarWindowBackend> ();
 			Xwt.Toolkit.CurrentEngine.RegisterBackend<IExtendedTitleBarDialogBackend,GtkExtendedTitleBarDialogBackend> ();
@@ -144,7 +156,10 @@ namespace MonoDevelop.Ide
 			// Set a synchronization context for the main gtk thread
 			SynchronizationContext.SetSynchronizationContext (DispatchService.SynchronizationContext);
 			Runtime.MainSynchronizationContext = SynchronizationContext.Current;
-			
+
+			// Initialize Roslyn's synchronization context
+			RoslynServices.RoslynService.Initialize ();
+
 			AddinManager.AddinLoadError += OnAddinError;
 			
 			var startupInfo = new StartupInfo (args);
@@ -298,7 +313,8 @@ namespace MonoDevelop.Ide
 			StartLockupTracker ();
 
 			startupTimer.Stop ();
-			Counters.Startup.Inc (GetStartupMetadata (startupInfo));
+
+			CreateStartupMetadata (startupInfo);
 
 			GLib.Idle.Add (OnIdle);
 			IdeApp.Run ();
@@ -320,10 +336,58 @@ namespace MonoDevelop.Ide
 			return 0;
 		}
 
+		/// <summary>
+		/// Resolves MSBuild 15.0 assemblies that are used by MonoDevelop.Ide and are included with Mono.
+		/// </summary>
+		void ResolveMSBuildAssemblies ()
+		{
+			var currentRuntime = MonoRuntimeInfo.FromCurrentRuntime ();
+			if (currentRuntime != null) {
+				msbuildBinDir = Path.Combine (currentRuntime.Prefix, "lib", "mono", "msbuild", "15.0", "bin");
+				if (Directory.Exists (msbuildBinDir)) {
+					AppDomain.CurrentDomain.AssemblyResolve += MSBuildAssemblyResolve;
+				}
+			}
+		}
+
+		string msbuildBinDir;
+
+		string[] msbuildAssemblies = new string [] {
+			"Microsoft.Build",
+			"Microsoft.Build.Engine",
+			"Microsoft.Build.Framework",
+			"Microsoft.Build.Tasks.Core",
+			"Microsoft.Build.Utilities.Core"
+		};
+
+		Assembly MSBuildAssemblyResolve (object sender, ResolveEventArgs args)
+		{
+			var asmName = new AssemblyName (args.Name);
+			if (!msbuildAssemblies.Any (msbuildAssembly => StringComparer.OrdinalIgnoreCase.Equals (msbuildAssembly, asmName.Name)))
+				return null;
+
+			string fullPath = Path.Combine (msbuildBinDir, asmName.Name + ".dll");
+			if (File.Exists (fullPath)) {
+				return Assembly.LoadFrom (fullPath);
+			}
+
+			return null;
+		}
+
 		static bool OnIdle ()
 		{
 			Composition.CompositionManager.InitializeAsync ().Ignore ();
 			return false;
+		}
+
+		async void CreateStartupMetadata (StartupInfo startupInfo)
+		{
+			var result = await Task.Run (() => DesktopService.PlatformTelemetry);
+			if (result == null) {
+				return;
+			}
+			Counters.Startup.Inc (GetStartupMetadata (startupInfo, result));
+			IdeApp.OnStartupCompleted ();
 		}
 
 		static DateTime lastIdle;
@@ -655,7 +719,7 @@ namespace MonoDevelop.Ide
 				foreach (var path in paths) {
 					var file = BrandingService.GetFile (path.Replace ('/',Path.DirectorySeparatorChar));
 					if (File.Exists (file)) {
-						Assembly asm = Platform.AssemblyLoad(file);
+						Assembly asm = Runtime.LoadAssemblyFrom (file);
 						var t = asm.GetType (type, true);
 						var c = Activator.CreateInstance (t) as IdeCustomizer;
 						if (c == null)
@@ -667,19 +731,20 @@ namespace MonoDevelop.Ide
 			return null;
 		}
 
-		static Dictionary<string, string> GetStartupMetadata (StartupInfo startupInfo)
+		static StartupMetadata GetStartupMetadata (StartupInfo startupInfo, IPlatformTelemetryDetails platformDetails)
 		{
-			var metadata = new Dictionary<string, string> ();
-
-			metadata ["CorrectedStartupTime"] = startupTimer.ElapsedMilliseconds.ToString ();
-			metadata ["StartupType"] = "0";
-
 			var assetType = StartupAssetType.FromStartupInfo (startupInfo);
 
-			metadata ["AssetTypeId"] = assetType.Id.ToString ();
-			metadata ["AssetTypeName"] = assetType.Name;
-
-			return metadata;
+			return new StartupMetadata {
+				CorrectedStartupTime = startupTimer.ElapsedMilliseconds,
+				StartupType = 0,
+				AssetTypeId = assetType.Id.ToString (),
+				AssetTypeName = assetType.Name,
+				IsInitialRun = IdeApp.IsInitialRun,
+				IsInitialRunAfterUpgrade = IdeApp.IsInitialRunAfterUpgrade,
+				TimeSinceMachineStart = platformDetails.TimeSinceMachineStart.Seconds,
+				TimeSinceLogin = platformDetails.TimeSinceLogin.Seconds
+			};
 		}
 
 		internal static IDictionary<string, string> GetOpenWorkspaceOnStartupMetadata ()
