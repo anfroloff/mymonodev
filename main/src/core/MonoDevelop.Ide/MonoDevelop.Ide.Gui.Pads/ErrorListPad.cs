@@ -963,7 +963,7 @@ namespace MonoDevelop.Ide.Gui.Pads
 		{
 			if (buildOutputViewContent == null) {
 				buildOutputViewContent = new BuildOutputViewContent (buildOutput);
-				buildOutputDoc = IdeApp.Workbench.OpenDocument (buildOutputViewContent, true);
+				buildOutputDoc = IdeApp.Workbench.OpenDocument (buildOutputViewContent, true, true);
 				buildOutputDoc.Closed += BuildOutputDocClosed;
 			} else if (buildOutputDoc != null) {
 				buildOutputDoc.Select ();

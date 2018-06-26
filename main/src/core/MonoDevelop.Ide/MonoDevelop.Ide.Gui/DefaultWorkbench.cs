@@ -403,7 +403,7 @@ namespace MonoDevelop.Ide.Gui
 			return mimeimage;
 		}
 
-		public virtual void ShowView (ViewContent content, bool bringToFront, IViewDisplayBinding binding = null, DockNotebook notebook = null)
+		public virtual void ShowView (ViewContent content, bool bringToFront, IViewDisplayBinding binding = null, DockNotebook notebook = null, bool isPreview = false)
 		{
 			bool isFile = content.IsFile;
 			if (!isFile) {
@@ -433,7 +433,7 @@ namespace MonoDevelop.Ide.Gui
 
 			var mimeimage = PrepareShowView (content);
 			var addToControl = notebook ?? DockNotebook.ActiveNotebook ?? tabControl;
-			var tab = addToControl.AddTab ();
+			var tab = addToControl.AddTab (isPreview: isPreview);
 
 			SdiWorkspaceWindow sdiWorkspaceWindow = new SdiWorkspaceWindow (this, content, addToControl, tab);
 			sdiWorkspaceWindow.TitleChanged += delegate { SetWorkbenchTitle (); };

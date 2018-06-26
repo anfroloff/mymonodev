@@ -280,8 +280,6 @@ namespace MonoDevelop.Components.DockNotebook
 				tab.AccessibilityShowMenu += OnAccessibilityShowMenu;
 			}
 
-			tab.ContentChanged += OnTabContentChanged;
-
 			QueueResize ();
 
 			UpdateAccessibilityTabs ();
@@ -300,21 +298,11 @@ namespace MonoDevelop.Components.DockNotebook
 				Accessible.RemoveAccessibleElement (tab.CloseButtonAccessible);
 			}
 
-			tab.ContentChanged -= OnTabContentChanged;
-
 			tab.Dispose ();
 
 			QueueResize ();
 
 			UpdateAccessibilityTabs ();
-		}
-
-		void OnTabContentChanged (object sender, EventArgs args)
-		{
-			var tab = (DockNotebookTab)sender;
-			if (tab.Content is Ide.Gui.SdiWorkspaceWindow wnd && wnd.IsPreview) {
-				notebook.ChangeTabToPreview (tab); 
-			}
 		}
 
 		void PageReorderedHandler (DockNotebookTab oldPlacement, DockNotebookTab newPlacement)

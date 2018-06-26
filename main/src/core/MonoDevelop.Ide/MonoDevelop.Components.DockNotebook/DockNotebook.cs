@@ -342,34 +342,36 @@ namespace MonoDevelop.Components.DockNotebook
 
 		public Action<DockNotebook, DockNotebookTab, Gdk.EventButton> DoPopupMenu { get; set; }
 
-		public DockNotebookTab AddTab (Gtk.Widget content = null)
+		public DockNotebookTab AddTab (Gtk.Widget content = null, bool isPreview = false)
 		{
-			var t = InsertTab (-1);
+			var t = InsertTab (-1, isPreview);
 			if (content != null)
 				t.Content = content;
 			return t;
 		}
 
-		public DockNotebookTab InsertTab (int index)
+		public DockNotebookTab InsertTab (int index, bool isPreview = false)
 		{
+			var tabPages = isPreview ? previewPages : pages;
+
 			var tab = new DockNotebookTab (this, tabStrip);
 			if (index == -1) {
-				pages.Add (tab);
-				tab.Index = pages.Count - 1;
+				tabPages.Add (tab);
+				tab.Index = tabPages.Count - 1;
 			} else {
-				pages.Insert (index, tab);
+				tabPages.Insert (index, tab);
 				tab.Index = index;
-				UpdateIndexes (pages, index + 1);
+				UpdateIndexes (tabPages, index + 1);
 			}
 
 			pagesHistory.Add (tab);
 
-			if (pages.Count == 1)
+			if (tabPages.Count == 1)
 				CurrentTab = tab;
 
 			tabStrip.StartOpenAnimation ((DockNotebookTab)tab);
 			tabStrip.Update ();
-			tabStrip.DropDownButton.Sensitive = pages.Count > 0;
+			tabStrip.DropDownButton.Sensitive = tabPages.Count > 0;
 
 			PageAdded?.Invoke (this, new TabEventArgs { Tab = tab, });
 

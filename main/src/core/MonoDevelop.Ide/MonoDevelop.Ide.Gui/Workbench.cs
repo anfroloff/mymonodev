@@ -689,9 +689,9 @@ namespace MonoDevelop.Ide.Gui
 			}
 		}
 		
-		public Document OpenDocument (ViewContent content, bool bringToFront)
+		public Document OpenDocument (ViewContent content, bool bringToFront, bool isPreview = false)
 		{
-			workbench.ShowView (content, bringToFront);
+			workbench.ShowView (content, bringToFront, isPreview: isPreview);
 			if (bringToFront)
 				Present ();
 			return WrapDocument (content.WorkbenchWindow);
@@ -702,16 +702,16 @@ namespace MonoDevelop.Ide.Gui
 			workbench.ToggleFullViewMode ();
 		}
 
-		public Document NewDocument (string defaultName, string mimeType, string content)
+		public Document NewDocument (string defaultName, string mimeType, string content, bool isPreview = false)
 		{
 			MemoryStream ms = new MemoryStream ();
 			byte[] data = System.Text.Encoding.UTF8.GetBytes (content);
 			ms.Write (data, 0, data.Length);
 			ms.Position = 0;
-			return NewDocument (defaultName, mimeType, ms);
+			return NewDocument (defaultName, mimeType, ms, isPreview);
 		}
 		
-		public Document NewDocument (string defaultName, string mimeType, Stream content)
+		public Document NewDocument (string defaultName, string mimeType, Stream content, bool isPreview = false)
 		{
 			IViewDisplayBinding binding = DisplayBindingService.GetDefaultViewBinding (null, mimeType, null);
 			if (binding == null)
@@ -729,7 +729,7 @@ namespace MonoDevelop.Ide.Gui
 			newContent.UntitledName = defaultName;
 			newContent.IsDirty = false;
 			newContent.Binding = binding;
-			workbench.ShowView (newContent, true, binding);
+			workbench.ShowView (newContent, true, binding, isPreview: isPreview);
 
 			var document = WrapDocument (newContent.WorkbenchWindow);
 			document.Editor.Encoding = Encoding.UTF8;

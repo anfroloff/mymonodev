@@ -424,8 +424,6 @@ namespace MonoDevelop.Ide.Gui
 			}
 		}
 
-		internal bool IsPreview { get; set; }
-
 		public MonoDevelop.Ide.Gui.ViewCommandHandlers CommandHandler {
 			get {
 				return commandHandler;
