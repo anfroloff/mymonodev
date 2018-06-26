@@ -355,6 +355,7 @@ namespace MonoDevelop.Components.DockNotebook
 			var tabPages = isPreview ? previewPages : pages;
 
 			var tab = new DockNotebookTab (this, tabStrip);
+			tab.IsPreview = isPreview;
 			if (index == -1) {
 				tabPages.Add (tab);
 				tab.Index = tabPages.Count - 1;
