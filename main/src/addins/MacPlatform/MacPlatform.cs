@@ -597,17 +597,15 @@ namespace MonoDevelop.MacIntegration
 
 				ApplicationEvents.OpenDocuments += delegate (object sender, ApplicationDocumentEventArgs e) {
 					//OpenFiles may pump the mainloop, but can't do that from an AppleEvent, so use a brief timeout
-					GLib.Timeout.Add (10, delegate {
-						IdeApp.ReportTimeToCode = true;
-						IdeApp.OpenFiles (e.Documents.Select (
-							doc => new FileOpenInformation (doc.Key, null, doc.Value, 1, OpenDocumentOptions.DefaultInternal))
-						);
-						return false;
-					});
+					IdeApp.ReportTimeToCode = true;
+					IdeApp.OpenFiles (e.Documents.Select (
+						doc => new FileOpenInformation (doc.Key, null, doc.Value, 1, OpenDocumentOptions.DefaultInternal))
+					);
 					e.Handled = true;
 				};
 
 				ApplicationEvents.OpenUrls += delegate (object sender, ApplicationUrlEventArgs e) {
+					Console.WriteLine ("OpenUrls called: {0}", string.Join (" ", e.Urls));
 					GLib.Timeout.Add (10, delegate {
 						IdeApp.ReportTimeToCode = true;
 						// Open files via the monodevelop:// URI scheme, compatible with the

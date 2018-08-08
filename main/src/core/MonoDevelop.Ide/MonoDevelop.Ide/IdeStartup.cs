@@ -242,6 +242,8 @@ namespace MonoDevelop.Ide
 				// XBC #33699
 				Counters.Initialization.Trace ("Initializing IdeApp");
 				bool showWelcomePage = !startupInfo.HasFiles;
+				var files = startupInfo.RequestedFileList.Select (x => x.FileName.ToString ());
+				Console.WriteLine ("{0} - {1}", showWelcomePage, string.Join (" ", files));
 				IdeApp.Initialize (monitor, showWelcomePage);
 
 				if (errorsList.Count > 0) {

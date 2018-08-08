@@ -235,8 +235,9 @@ namespace MonoDevelop.Ide
 			};
 			
 			FileService.ErrorHandler = FileServiceErrorHandler;
-		
-			monitor.BeginTask (GettextCatalog.GetString("Loading Workbench"), 6);
+
+			int steps = showWelcomePage ? 6 : 5;
+			monitor.BeginTask (GettextCatalog.GetString("Loading Workbench"), steps);
 			Counters.Initialization.Trace ("Loading Commands");
 			
 			commandService.LoadCommands ("/MonoDevelop/Ide/Commands");
@@ -250,11 +251,9 @@ namespace MonoDevelop.Ide
 			Counters.Initialization.Trace ("Initializing Workbench");
 			workbench.Initialize (monitor);
 			monitor.Step (1);
-			
-			MonoDevelop.Ide.WelcomePage.WelcomePageService.Initialize ();
-			if (showWelcomePage)
-				MonoDevelop.Ide.WelcomePage.WelcomePageService.ShowWelcomePage ();
 
+			Counters.Initialization.Trace ("Initializing WelcomePage service");
+			MonoDevelop.Ide.WelcomePage.WelcomePageService.Initialize ();
 			monitor.Step (1);
 
 			Counters.Initialization.Trace ("Restoring Workbench State");
@@ -264,7 +263,15 @@ namespace MonoDevelop.Ide
 			Counters.Initialization.Trace ("Flushing GUI events");
 			DispatchService.RunPendingEvents ();
 			Counters.Initialization.Trace ("Flushed GUI events");
-			
+
+			// RunPendingEvents will trigger DidFinishLaunching, so LaunchServices will end up having already called
+			// OpenDocuments when opening from Finder.
+			if (showWelcomePage && (!Workspace.IsOpen && !Workspace.WorkspaceItemIsOpening)) {
+				MonoDevelop.Ide.WelcomePage.WelcomePageService.ShowWelcomePage ();
+				monitor.Step (1);
+				Counters.Initialization.Trace ("Showed welcome page");
+			}
+
 			MessageService.RootWindow = workbench.RootWindow;
 			Xwt.MessageDialog.RootWindow = Xwt.Toolkit.CurrentEngine.WrapWindow (workbench.RootWindow);
 		
