@@ -3442,6 +3442,18 @@ namespace MonoDevelop.SourceEditor
 			TextEditor.Document.DiffTracker.Reset ();
 		}
 
+		void ITextEditorImpl.StartGlobalUndoTransaction ()
+		{
+			TextEditor.Document.StartGlobalUndoTransaction ();
+
+		}
+
+		void ITextEditorImpl.EndGlobalUndoTransaction (bool committed)
+		{
+			TextEditor.Document.EndGlobalUndoTransaction (committed);
+		}
+
+
 		public bool HasFocus {
 			get {
 				return this.TextEditor.HasFocus;
