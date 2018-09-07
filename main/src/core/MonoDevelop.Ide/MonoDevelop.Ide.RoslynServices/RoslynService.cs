@@ -29,6 +29,7 @@ using System.Diagnostics.Contracts;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Editor.Shared.Utilities;
+using Microsoft.CodeAnalysis.ErrorReporting;
 using Microsoft.CodeAnalysis.Internal.Log;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Utilities;
@@ -58,6 +59,10 @@ namespace MonoDevelop.Ide.RoslynServices
 			if (Interlocked.CompareExchange (ref initialized, 1, 0) == 1)
 				return;
 
+			// Maybe we should crash here?
+			FatalError.Handler = exception => LoggingService.LogInternalError ("Roslyn fatal exception", exception);
+			FatalError.NonFatalHandler = exception => LoggingService.LogInternalError ("Roslyn non-fatal exception", exception);
+
 			// Initialize Roslyn foreground thread data.
 			ForegroundThreadAffinitizedObject.CurrentForegroundThreadData = new ForegroundThreadData (
 				Runtime.MainThread,
@@ -67,6 +72,7 @@ namespace MonoDevelop.Ide.RoslynServices
 
 			Logger.SetLogger (AggregateLogger.Create (
 				new RoslynLogger (),
+				new RoslynFileLogger (),
 				Logger.GetLogger ()
 			));
 		}
