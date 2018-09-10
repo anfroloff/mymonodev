@@ -81,21 +81,27 @@ namespace MonoDevelop.Ide
 			Assert.AreEqual (1, node.Children.Count);
 		}
 
-		[Test]
-		public async Task CustomProject_DataSearch ()
+		BuildOutput GenerateCustomBuild (int items)
 		{
 			var bo = new BuildOutput ();
 			var monitor = bo.GetProgressMonitor ();
 
 			monitor.LogObject (new BuildSessionStartedEvent ());
-			for (int i = 0; i < 100; i++) {
+			for (int i = 0; i < items; i++) {
 				monitor.Log.WriteLine ($"Message {i + 1}");
 			}
 			monitor.Log.WriteLine ("Custom project built");
 			monitor.LogObject (new BuildSessionFinishedEvent ());
 
+			return bo;
+		}
+
+		[Test]
+		public async Task CustomProject_DataSearch ()
+		{
+			var bo = GenerateCustomBuild (100);
+
 			var nodes = bo.GetRootNodes (true);
-			var dataSource = new BuildOutputDataSource (nodes);
 			var search = new BuildOutputDataSearch (nodes);
 			int matches = 0;
 			var visited = new HashSet<BuildOutputNode> ();
@@ -109,6 +115,20 @@ namespace MonoDevelop.Ide
 			}
 
 			Assert.That (matches, Is.EqualTo (100));
+		}
+
+		[Test]
+		public async Task CustomProject_SearchCanBeCanceled ()
+		{
+			var bo = GenerateCustomBuild (1000000);
+
+			var search = new BuildOutputDataSearch (bo.GetRootNodes (true));
+			for (int i = 0; i < 100; i++) {
+				await Task.WhenAll (Task.Run (async () => await search.FirstMatch ("Message ")),
+									Task.Delay (100).ContinueWith (t => search.Cancel ()));
+
+				Assert.True (search.IsCanceled, "Search was not canceled");
+			}
 		}
 
 		[Test]
