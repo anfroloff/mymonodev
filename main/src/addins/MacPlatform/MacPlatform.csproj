@@ -114,6 +114,12 @@
     <Compile Include="Dialogs\MDAccessoryViewBox.cs" />
     <Compile Include="Dialogs\MacCommonFileDialogHandler.cs" />
     <Compile Include="MacTelemetryDetails.cs" />
+    <Compile Include="Dialogs\HttpClientOptionsPanel.cs" />
+    <Compile Include="Dialogs\HttpClientOptionsWidget.cs" />
+    <Compile Include="Dialogs\HttpClientOptionsWidget.UI.cs">
+      <DependentUpon>HttpClientOptionsWidget.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MacPlatformSettings.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
